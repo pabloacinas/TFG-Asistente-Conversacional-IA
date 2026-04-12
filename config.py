@@ -28,7 +28,7 @@ class Config:
     # Esto equivale a 5 pares de pregunta-respuesta (ÓPTIMO para tu modelo)
     
     # Archivos
-    ARCHIVO_CARTA = "CartaRestaurantePruebasRAG.txt"
+    ARCHIVO_PDF = "Carta de Restaurante para Pruebas RAG.pdf"
     
     # Configuración de interfaz
     MOSTRAR_INFO_CONTEXTO = True  # Mostrar información del contexto en cada turno

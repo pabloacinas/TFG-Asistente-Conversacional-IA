@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Asistente de IA Local - Alchi
 Conectado a LM Studio (API compatible con OpenAI)
@@ -7,24 +7,38 @@ Conectado a LM Studio (API compatible con OpenAI)
 from openai import OpenAI
 import os
 import sys
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
 from config import Config
 
 
-def leer_contexto_carta():
+def procesar_carta_pdf():
     """
-    Lee el archivo CartaRestaurantePruebasRAG.txt y devuelve su contenido
-    para inyectarlo como contexto en el System Prompt.
+    Usa la librería Marker para convertir la carta en PDF a Markdown.
+    Este proceso se realiza en cada inicio del programa.
     """
     try:
-        ruta_carta = os.path.join(os.path.dirname(__file__), Config.ARCHIVO_CARTA)
-        with open(ruta_carta, 'r', encoding='utf-8') as archivo:
-            contenido = archivo.read()
-        return contenido
-    except FileNotFoundError:
-        print("⚠️  ADVERTENCIA: No se encontró el archivo CartaRestaurantePruebasRAG.txt")
-        return ""
+        ruta_pdf = os.path.join(os.path.dirname(__file__), Config.ARCHIVO_PDF)
+        
+        if not os.path.exists(ruta_pdf):
+            print(f"⚠️  ADVERTENCIA: No se encontró el archivo {Config.ARCHIVO_PDF}")
+            return ""
+
+        print("🧠 Inicializando modelos de Marker (esto puede tardar unos segundos)...")
+        # Inicializar el convertidor con los modelos necesarios
+        converter = PdfConverter(
+            artifact_dict=create_model_dict(),
+        )
+
+        print(f"📄 Procesando '{Config.ARCHIVO_PDF}'...")
+        # Ejecutar la conversión
+        # 'rendered' contiene .markdown, .json, e .images
+        rendered = converter(ruta_pdf)
+        
+        return rendered.markdown
+
     except Exception as e:
-        print(f"⚠️  Error al leer la carta: {e}")
+        print(f"⚠️  Error al procesar el PDF con Marker: {e}")
         return ""
 
 
@@ -170,8 +184,8 @@ def main():
     print("\n🔄 Iniciando asistente Alchi...")
     
     # Leer el contexto de la carta
-    print("📖 Cargando información del restaurante...")
-    contexto_carta = leer_contexto_carta()
+    print("📖 Cargando información del restaurante (procesando PDF)...")
+    contexto_carta = procesar_carta_pdf()
     
     if not contexto_carta:
         print("⚠️  El asistente funcionará sin el contexto de la carta.")
