@@ -1,110 +1,45 @@
-# 🍴 Asistente Alchi - Restaurante L'Alchimie Gastronomique
+# 🍴 Asistente Alchi v3.0 - RAG + Sistema Experto de Reservas
 
-Asistente de IA local que se conecta a **LM Studio** para responder consultas sobre el menú del restaurante.
+Asistente de IA local avanzado para el restaurante **L'Alchimie Gastronomique**. Combina búsqueda semántica en la carta (RAG) con un motor de gestión de reservas híbrido (Reglas + LLM).
 
-## 📋 Requisitos Previos
+## 🚀 Características Principales
 
-1. **Python 3.8 o superior** instalado
-2. **LM Studio** descargado y ejecutándose
-3. Un modelo cargado en LM Studio
-4. El servidor local de LM Studio activo en `http://localhost:1234`
+### 🧠 Motor de Reservas Híbrido
+- **Extracción Dual:** Utiliza expresiones regulares para capturas rápidas y llamadas especializadas al LLM para procesar lenguaje natural complejo, devolviendo datos estructurados en JSON.
+- **Máquina de Estados:** Un flujo de conversación controlado (`GestorReservas`) que garantiza la recolección de todos los datos necesarios (fecha, hora, personas, nombre, teléfono) antes de confirmar.
+- **Validación en Tiempo Real:** El sistema detecta incoherencias y solicita aclaraciones si los datos no se capturan correctamente.
 
-## 🚀 Instalación
+### 🏢 Gestión de Sala Inteligente (SQLite)
+- **Asignación Dinámica de Mesas:** Busca automáticamente la mesa que mejor se adapta al tamaño del grupo.
+- **Control de Aforo y Tiempo:** Implementa bloqueos de 1 hora por reserva, verificando solapamientos de horarios para garantizar que nunca haya sobreventa.
+- **Búsqueda de Alternativas:** Si no hay hueco a la hora solicitada, el sistema sugiere automáticamente los próximos horarios disponibles.
 
-1. Instala las dependencias:
-```bash
-pip install -r requirements.txt
-```
+### 📖 RAG (Retrieval-Augmented Generation)
+- **Marker-PDF:** Conversión de alta fidelidad de la carta PDF a Markdown con sistema de **caché persistente**.
+- **ChromaDB:** Almacenamiento vectorial local para búsquedas semánticas precisas.
+- **Contexto Optimizado:** Inyecta solo los fragmentos relevantes del menú en el prompt para respuestas rápidas y precisas.
 
-O instala directamente:
-```bash
-pip install openai
-```
+## 🛠️ Requisitos e Instalación
 
-## 🎯 Configuración de LM Studio
-
-1. Abre LM Studio
-2. Carga un modelo (recomendado: cualquier modelo GPT-like)
-3. Ve a la pestaña "Server" o "Local Server"
-4. Inicia el servidor local (debe estar en puerto 1234)
-5. Verifica que muestre: `Server running on http://localhost:1234`
-
-## ▶️ Uso
-
-Ejecuta el asistente:
-```bash
-python main.py
-```
-
-## 💬 Ejemplo de Conversación
-
-```
-Tú: Hola, ¿qué platos de pescado tenéis?
-
-Alchi: ¡Bienvenido a L'Alchimie! Tenemos varias opciones de pescado sostenible:
-- Lubina Salvaje a la Sal (28€)
-- Bacalao Skrei en Tempura (26,50€)
-- Arroz Meloso de Bogavante (32€/persona, mínimo 2 personas)
-...
-```
-
-## 🛑 Comandos
-
-- `salir`, `exit`, `quit`: Termina la conversación
-- `Ctrl+C`: Interrumpe el programa
-
-## 🔧 Solución de Problemas
-
-### Error: "No se puede conectar con LM Studio"
-- Verifica que LM Studio esté abierto
-- Asegúrate de que has cargado un modelo
-- Confirma que el servidor local está activo
-
-### Error: "No se encontró CartaRestaurantePruebasRAG.txt"
-- El archivo debe estar en la misma carpeta que `main.py`
+1. **Python 3.10+** e instalación de dependencias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **LM Studio:** Servidor local activo en el puerto 1234 con un modelo cargado.
+3. **Base de Datos:** El archivo SQLite se genera automáticamente. Para configurar las mesas, usa el script en `database/schema.sql`.
 
 ## 📁 Estructura del Proyecto
 
-```
-RAG/
-├── main.py                          # Programa principal
-├── config.py                        # Configuración (API, parámetros)
-├── CartaRestaurantePruebasRAG.txt  # Carta del restaurante (contexto)
-├── requirements.txt                 # Dependencias
-└── README.md                        # Este archivo
-```
+- `main.py`: Orquestador principal y bucle de chat.
+- `reservas.py`: Lógica experta de conversación, extracción LLM y estados.
+- `db_manager.py`: Controlador de base de datos, aforo y lógica de asignación de mesas.
+- `config.py`: Configuración centralizada del sistema.
+- `database/`: Scripts SQL y archivo `.db` persistente.
+- `vector_db/`: Base de datos de vectores para la carta.
 
-## 🔑 Configuración
-
-La configuración se encuentra en [config.py](config.py). Puedes personalizar:
-
-```python
-# Conexión a LM Studio
-LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
-LM_STUDIO_API_KEY = "sk-lm-jFlKn5OW:UyVY24IrqfspZCJCGFru"
-
-# Parámetros del modelo
-TEMPERATURE = 0.7
-MAX_TOKENS = 800
-
-# Ventana deslizante (memoria de conversación)
-MAX_MENSAJES_HISTORIAL = 6  # 3 pares pregunta-respuesta
-
-# Interfaz
-MOSTRAR_INFO_CONTEXTO = True  # Mostrar contador de contexto
-```
-
-## ✨ Características
-
-✅ Lectura automática de la carta del restaurante  
-✅ Inyección del contexto en el System Prompt  
-✅ Streaming de respuestas en tiempo real  
-✅ Manejo de errores si LM Studio está apagado  
-✅ Interfaz de chat por consola  
-✅ Historial de conversación con ventana deslizante  
-✅ **Contador de contexto en tiempo real** 📊  
-✅ **Configuración centralizada** en archivo separado  
+## 💡 Cómo interactuar
+- **Consultas:** Pregunta sobre platos, ingredientes o precios ("¿Qué postres tenéis?", "¿Tenéis platos veganos?").
+- **Reservas:** Inicia el flujo con frases naturales ("Quiero una mesa para mañana", "Reserva a nombre de Juan"). El sistema te guiará paso a paso.
 
 ---
-
-Desarrollado como parte del TFG - Asistente IA con RAG
+*Desarrollado como parte del TFG - Sistema RAG y Gestión de Reservas con IA Local.*
