@@ -1,7 +1,5 @@
 """
-Asistente de IA Local - Alchi (Versión RAG Real)
-Utiliza Marker para procesar el PDF y ChromaDB para búsqueda semántica.
-Conectado a LM Studio (API compatible con OpenAI)
+Asistente de IA Local - Alchi (IA + RAG + RESERVAS + HORARIO)
 """
 
 import os
@@ -20,34 +18,41 @@ from marker.models import create_model_dict
 
 from config import Config
 from reservas import GestorReservas
+from sentence_transformers import SentenceTransformer, util
+model_rerank = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def procesar_carta_pdf():
-    """
-    Usa la librería Marker para convertir el PDF a Markdown con sistema de caché.
-    Solo procesa el PDF si no existe el caché o si el PDF es más nuevo.
-    """
+# =========================
+# MARKER
+# =========================
+
+def get_marker_converter():
     try:
-        ruta_pdf = os.path.join(os.path.dirname(__file__), Config.ARCHIVO_PDF)
-        ruta_cache = os.path.join(os.path.dirname(__file__), Config.ARCHIVO_CARTA_MD)
+        print("Inicializando modelos de Marker...")
+        return PdfConverter(artifact_dict=create_model_dict())
+    except Exception as e:
+        print(f"Error al inicializar Marker: {e}")
+        return None
 
+
+def procesar_pdf(ruta_pdf, ruta_cache, converter=None, nombre="archivo"):
+    try:
         if not os.path.exists(ruta_pdf):
-            print(f"ADVERTENCIA: No se encontró el archivo {Config.ARCHIVO_PDF}")
+            print(f"ADVERTENCIA: No se encontró {nombre}")
             return ""
 
         if os.path.exists(ruta_cache):
-            fecha_pdf = os.path.getmtime(ruta_pdf)
-            fecha_cache = os.path.getmtime(ruta_cache)
-
-            if fecha_cache > fecha_pdf:
-                print("Cargando carta desde caché...")
+            if os.path.getmtime(ruta_cache) > os.path.getmtime(ruta_pdf):
+                print(f"Cargando {nombre} desde caché...")
                 with open(ruta_cache, "r", encoding="utf-8") as f:
                     return f.read()
 
-        print("Inicializando modelos de Marker...")
-        converter = PdfConverter(artifact_dict=create_model_dict())
+        if converter is None:
+            converter = get_marker_converter()
+        if converter is None:
+            return ""
 
-        print(f"Procesando '{Config.ARCHIVO_PDF}' con Marker...")
+        print(f"Procesando {nombre} con Marker...")
         rendered = converter(ruta_pdf)
 
         with open(ruta_cache, "w", encoding="utf-8") as f:
@@ -56,14 +61,15 @@ def procesar_carta_pdf():
         return rendered.markdown
 
     except Exception as e:
-        print(f"Error al procesar el PDF con Marker: {e}")
+        print(f"Error procesando {nombre}: {e}")
         return ""
 
 
+# =========================
+# RAG
+# =========================
+
 def segmentar_texto(texto):
-    """
-    Divide el texto de la carta en fragmentos manejables.
-    """
     print(f"Segmentando texto en fragmentos de {Config.CHUNK_SIZE} caracteres...")
     chunks = []
     inicio = 0
@@ -90,190 +96,175 @@ def segmentar_texto(texto):
     return chunks
 
 
-def crear_indice_rag(markdown_carta):
-    """
-    Crea o recrea la colección de ChromaDB sin borrar manualmente la carpeta.
-    Esto evita errores de bloqueo de archivos en Windows.
-    """
+def crear_indice_rag(markdown):
     try:
         os.makedirs(Config.DB_PATH_VECTORIAL, exist_ok=True)
 
         cliente_db = chromadb.PersistentClient(path=Config.DB_PATH_VECTORIAL)
 
-        modelo_embeddings = embedding_functions.SentenceTransformerEmbeddingFunction(
+        embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
 
-        nombre_coleccion = "carta_restaurante"
+        nombre = "carta_restaurante"
 
         try:
-            cliente_db.delete_collection(name=nombre_coleccion)
-            print("Colección vectorial anterior eliminada.")
-        except Exception:
+            cliente_db.delete_collection(name=nombre)
+            print("Colección anterior eliminada.")
+        except:
             pass
 
         coleccion = cliente_db.create_collection(
-            name=nombre_coleccion,
-            embedding_function=modelo_embeddings
+            name=nombre,
+            embedding_function=embedding_fn
         )
 
-        fragmentos = segmentar_texto(markdown_carta)
-        ids = [f"chunk_{i}" for i in range(len(fragmentos))]
+        chunks = segmentar_texto(markdown)
+        ids = [f"chunk_{i}" for i in range(len(chunks))]
 
-        coleccion.add(
-            documents=fragmentos,
-            ids=ids
-        )
+        coleccion.add(documents=chunks, ids=ids)
 
-        print("Base de datos vectorial creada con éxito.")
+        print("Base vectorial creada.")
         return coleccion
 
     except Exception as e:
-        print(f"Error al crear la base de datos vectorial: {e}")
+        print(f"Error RAG: {e}")
         return None
 
 
-def buscar_contexto_relevante(coleccion, consulta_usuario):
-    """
-    Busca los fragmentos más relevantes en la base de datos vectorial.
-    """
-    if not coleccion:
-        return ""
-
+def buscar_contexto(coleccion, consulta):
     try:
-        resultados = coleccion.query(
-            query_texts=[consulta_usuario],
-            n_results=Config.TOP_K_RESULTS
-        )
-
-        contexto = "\n\n---\n\n".join(resultados["documents"][0])
-        return contexto
+        res = coleccion.query(query_texts=[consulta], n_results=Config.TOP_K_RESULTS)
+        return "\n\n---\n\n".join(res["documents"][0])
     except Exception as e:
-        print(f"Error en la recuperación RAG: {e}")
+        print(f"Error búsqueda: {e}")
         return ""
 
+# =========================
+# Reranking
+# =========================
 
-def crear_system_prompt_dinamico(contexto_recuperado):
-    """
-    Crea el system prompt para consultas generales del restaurante.
-    No se usa para confirmar reservas.
-    """
-    prompt = f"""Eres 'Alchi', el metre amable y profesional de L'Alchimie.
+def rerank_chunks(consulta, chunks, top_k=2):
+    if not chunks:
+        return ""
 
-PERSONALIDAD:
-- Sé hospitalario, cálido y educado.
-- Respuestas breves y directas, máximo 3 frases.
-- No uses rellenos técnicos ni paréntesis.
+    emb_query = model_rerank.encode(consulta, convert_to_tensor=True)
+    emb_chunks = model_rerank.encode(chunks, convert_to_tensor=True)
 
-INFORMACIÓN DEL MENÚ:
-{contexto_recuperado}
+    scores = util.cos_sim(emb_query, emb_chunks)[0]
 
-REGLAS IMPORTANTES:
-- Si el usuario está preguntando por la carta, platos, precios o información del restaurante, responde con naturalidad.
-- No inventes datos que no estén en el contexto.
-- No confirmes reservas por tu cuenta.
-"""
-    return prompt
-
-
-def inicializar_cliente():
-    """
-    Inicializa el cliente de OpenAI para LM Studio.
-    """
-    return OpenAI(
-        base_url=Config.LM_STUDIO_BASE_URL,
-        api_key=Config.LM_STUDIO_API_KEY
+    # Ordenar por relevancia
+    ranked = sorted(
+        zip(chunks, scores),
+        key=lambda x: x[1],
+        reverse=True
     )
 
+    top_chunks = [chunk for chunk, _ in ranked[:top_k]]
 
-def verificar_conexion(cliente):
-    """
-    Verifica disponibilidad de LM Studio.
-    """
-    try:
-        cliente.chat.completions.create(
-            model=Config.MODEL_NAME,
-            messages=[{"role": "user", "content": "test"}],
-            max_tokens=1
-        )
-        return True
-    except Exception:
-        return False
+    return "\n\n".join(top_chunks)
 
+#========================= # PROMPT # =========================
+def crear_system_prompt(contexto_carta, contexto_horario): 
+    return f""" Eres 'Alchi', el metre de L'Alchimie. Sé amable, breve y profesional.
+    HORARIO: {contexto_horario} MENÚ: {contexto_carta} 
+    REGLAS IMPORTANTES: 
+    - No inventes enlaces ni datos.
+    - Toda la información debe salir EXCLUSIVAMENTE del contexto proporcionado. 
+    - Si algo no está en el contexto, di que no dispones de esa información. 
+    - El restaurante NO tiene enlaces web en este sistema. 
+    IMPORTANTE: 
+    - Diferencia claramente entre: 
+        1. Horario de apertura del restaurante
+        2. Horario de servicio de cocina (comidas y cenas) 
+        - Cuando el usuario pregunte por: 
+            - "cenas" → responde SIEMPRE con horario de CENAS (cocina) 
+            - "comidas" → responde SIEMPRE con horario de COMIDAS (cocina) 
+            - "horario" general → puedes dar ambos, pero diferenciados 
+            - Las reservas SOLO se hacen en horario de cocina. 
+            - SOLO se podrá comer y cenar en horario de cocina. """
+# =========================
+# CHAT
+# =========================
 
-def chatear_con_alchi(cliente, coleccion_rag):
-    """
-    Bucle principal:
-    - Reservas: manda el backend con respuesta controlada.
-    - Carta y consultas generales: responde el LLM con RAG.
-    """
+def chatear(cliente, coleccion, markdown_horario):
     print("\n" + "=" * 60)
-    print("  ASISTENTE ALCHI (IA + RAG + RESERVAS)")
-    print("  Restaurante L'Alchimie Gastronomique")
-    print("=" * 60)
-    print("\nEscribe 'salir', 'exit' o 'quit' para terminar la conversación.\n")
+    print("  ASISTENTE ALCHI  ")
+    print("=" * 60 + "\n")
 
-    gestor_reservas = GestorReservas(llm_client=cliente, model_name=Config.MODEL_NAME)
-    historial_mensajes = []
+    gestor = GestorReservas(llm_client=cliente, model_name=Config.MODEL_NAME)
+    historial = []
 
     while True:
         try:
-            mensaje_usuario = input("Tú: ").strip()
+            msg = input("Tú: ").strip()
 
-            if mensaje_usuario.lower() in ["salir", "exit", "quit"]:
+            if msg.lower() in ["salir", "exit", "quit"]:
                 print("\nHasta pronto.\n")
                 break
 
-            if not mensaje_usuario:
+            if not msg:
                 continue
 
-            es_turno_reserva = (
-                gestor_reservas.hay_flujo_reserva_activo()
-                or gestor_reservas.detectar_intencion(mensaje_usuario)
+            # =========================
+            # RESERVAS (CONTROL TOTAL)
+            # =========================
+            if gestor.hay_flujo_reserva_activo() or gestor.detectar_intencion(msg):
+
+                respuesta = gestor.procesar_turno(msg)
+
+                print(f"\n[DEBUG] Datos: {gestor.datos}")
+                print(f"[DEBUG] Estado: {gestor.estado}")
+                print(f"[DEBUG] Acción: {gestor.ultima_accion}")
+                print(f"[DEBUG] Sistema: {respuesta}\n")
+
+                print(f"Alchi: {respuesta}\n")
+                continue
+
+            # =========================
+            # RAG + RERANKING + LLM
+            # =========================
+           # ctx = buscar_contexto(coleccion, msg)
+            resultados = coleccion.query(
+                query_texts=[msg],
+                n_results=5  # más recall
             )
 
-            if es_turno_reserva:
-                respuesta_controlada = gestor_reservas.procesar_turno(mensaje_usuario)
+            chunks = resultados["documents"][0]
 
-                print(f"\n[DEBUG] Datos: {gestor_reservas.datos}")
-                print(f"[DEBUG] Estado: {gestor_reservas.estado}")
-                print(f"[DEBUG] Acción: {gestor_reservas.ultima_accion}")
-                print(f"[DEBUG] Sistema: {respuesta_controlada}\n")
+            ctx = rerank_chunks(msg, chunks, top_k=2)
+            sys_prompt = crear_system_prompt(ctx, markdown_horario)
 
-                print(f"Alchi: {respuesta_controlada}\n")
-                continue
-
-            contexto_relevante = buscar_contexto_relevante(coleccion_rag, mensaje_usuario)
-            system_prompt = crear_system_prompt_dinamico(contexto_relevante)
-
-            mensajes_api = (
-                [{"role": "system", "content": system_prompt}] +
-                historial_mensajes +
-                [{"role": "user", "content": mensaje_usuario}]
+            mensajes = (
+                [{"role": "system", "content": sys_prompt}] +
+                historial +
+                [{"role": "user", "content": msg}]
             )
 
             print("Alchi: ", end="", flush=True)
-            respuesta = cliente.chat.completions.create(
+
+            res = cliente.chat.completions.create(
                 model=Config.MODEL_NAME,
-                messages=mensajes_api,
+                messages=mensajes,
                 temperature=Config.TEMPERATURE,
                 max_tokens=Config.MAX_TOKENS,
                 stream=True
             )
 
-            respuesta_completa = ""
-            for chunk in respuesta:
+            full = ""
+            for chunk in res:
                 if chunk.choices[0].delta.content:
-                    contenido = chunk.choices[0].delta.content
-                    print(contenido, end="", flush=True)
-                    respuesta_completa += contenido
+                    c = chunk.choices[0].delta.content
+                    print(c, end="", flush=True)
+                    full += c
+
             print("\n")
 
-            historial_mensajes.append({"role": "user", "content": mensaje_usuario})
-            historial_mensajes.append({"role": "assistant", "content": respuesta_completa})
+            historial.append({"role": "user", "content": msg})
+            historial.append({"role": "assistant", "content": full})
 
-            if len(historial_mensajes) > Config.MAX_MENSAJES_HISTORIAL:
-                historial_mensajes = historial_mensajes[-Config.MAX_MENSAJES_HISTORIAL:]
+            if len(historial) > Config.MAX_MENSAJES_HISTORIAL:
+                historial = historial[-Config.MAX_MENSAJES_HISTORIAL:]
 
         except KeyboardInterrupt:
             print("\n\nAdiós.")
@@ -283,27 +274,43 @@ def chatear_con_alchi(cliente, coleccion_rag):
             break
 
 
+# =========================
+# MAIN
+# =========================
+
 def main():
-    print("\nIniciando sistema RAG Alchi...")
+    print("\nIniciando Alchi...")
 
-    markdown_carta = procesar_carta_pdf()
-    if not markdown_carta:
-        print("No se pudo procesar la carta. Abortando...")
+    base = os.path.dirname(__file__)
+
+    ruta_carta_pdf = os.path.join(base, Config.ARCHIVO_PDF)
+    ruta_carta_md = os.path.join(base, Config.ARCHIVO_CARTA_MD)
+
+    ruta_horario_pdf = os.path.join(base, Config.ARCHIVO_HORARIO_PDF)
+    ruta_horario_md = os.path.join(base, Config.ARCHIVO_HORARIO_MD)
+
+    converter = None
+    if not os.path.exists(ruta_carta_md) or not os.path.exists(ruta_horario_md):
+        converter = get_marker_converter()
+
+    carta_md = procesar_pdf(ruta_carta_pdf, ruta_carta_md, converter, "carta")
+    if not carta_md:
+        print("Error cargando carta.")
         return
 
-    print("Construyendo base de datos de conocimiento...")
-    coleccion_rag = crear_indice_rag(markdown_carta)
-    if not coleccion_rag:
-        print("Error al crear el índice RAG.")
+    horario_md = procesar_pdf(ruta_horario_pdf, ruta_horario_md, converter, "horario")
+
+    print("Construyendo RAG...")
+    coleccion = crear_indice_rag(carta_md)
+    if not coleccion:
         return
 
-    cliente = inicializar_cliente()
-    if not verificar_conexion(cliente):
-        print("\nError: No hay conexión con LM Studio.")
-        return
+    cliente = OpenAI(
+        base_url=Config.LM_STUDIO_BASE_URL,
+        api_key=Config.LM_STUDIO_API_KEY
+    )
 
-    print("Todo listo. Iniciando chat.")
-    chatear_con_alchi(cliente, coleccion_rag)
+    chatear(cliente, coleccion, horario_md)
 
 
 if __name__ == "__main__":

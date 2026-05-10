@@ -41,3 +41,10 @@ vector_db/eb23e59a-f33b-4fc6-8a04-198e7f91f3ac/link_lists.bin
 __pycache__/
 *.pyc
 .vscode/settings.json
+vector_db/chroma.sqlite3
+vector_db
+Vídeo_Demo_ConversacionBot.mp4
+__pycache__/config.cpython-311.pyc
+prueba_gemini.py
+prueba_gemini2
+vector_db/chroma.sqlite3

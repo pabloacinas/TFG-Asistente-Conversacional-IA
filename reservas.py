@@ -44,6 +44,35 @@ class GestorReservas:
         self.ultima_respuesta_sistema = ""
         self.ultima_accion = None
 
+    def es_hora_en_horario_cocina(self, hora_str):
+        """
+        Valida si una hora está dentro de los turnos de comida (13:00-15:30) o cena (20:30-23:00).
+        """
+        try:
+            h, m = map(int, hora_str.split(":"))
+            total_minutos = h * 60 + m
+
+            # Comida: 13:00 (780 min) a 15:30 (930 min)
+            comida = (13 * 60 <= total_minutos <= 15 * 60 + 30)
+            # Cena: 20:30 (1230 min) a 23:00 (1380 min)
+            cena = (20 * 60 + 30 <= total_minutos <= 23 * 60)
+
+            return comida or cena
+        except Exception:
+            return False
+
+    def es_fecha_valida(self, fecha_str):
+        """
+        Comprueba si el restaurante está abierto ese día (cerrado lunes=0 y martes=1).
+        """
+        try:
+            # fecha_str es "dd/mm/yyyy"
+            dt = datetime.strptime(fecha_str, "%d/%m/%Y")
+            # weekday(): Monday=0, Tuesday=1, ...
+            return dt.weekday() not in [0, 1]
+        except Exception:
+            return True
+
     def detectar_intencion(self, mensaje):
         msg = mensaje.lower().strip()
         palabras_clave = [
@@ -65,6 +94,27 @@ class GestorReservas:
     def procesar_turno(self, mensaje):
         self.extraer_datos(mensaje, self.estado)
         self.actualizar_estado()
+
+        # 1. Validar si el día está abierto (Lunes/Martes cerrado)
+        if self.datos["fecha"] and not self.es_fecha_valida(self.datos["fecha"]):
+            self.ultima_respuesta_sistema = (
+                "Lo siento, el restaurante permanece cerrado los lunes y martes. "
+                "¿Qué otro día te vendría bien?"
+            )
+            self.datos["fecha"] = None
+            self._reset_disponibilidad()
+            self.estado = "PIDIENDO_FECHA"
+            return self.ultima_respuesta_sistema
+
+        # 2. Validar si la hora está en horario de cocina
+        if self.datos["hora"] and not self.es_hora_en_horario_cocina(self.datos["hora"]):
+            self.ultima_respuesta_sistema = (
+                f"Lo siento, la cocina está abierta de 13:00 a 15:30 y de 20:30 a 23:00. "
+                f"¿A qué hora prefieres reservar?"
+            )
+            self.datos["hora"] = None  # Resetear para pedir de nuevo
+            self.actualizar_estado()
+            return self.ultima_respuesta_sistema
 
         if self.estado == "COMPROBANDO_DISPONIBILIDAD":
             self.comprobar_disponibilidad()
@@ -102,6 +152,7 @@ class GestorReservas:
 
         respuesta = self.generar_respuesta_controlada()
         self.ultima_respuesta_sistema = respuesta
+        print("DEBUG FECHA:", self.datos["fecha"])
         return respuesta
 
     def extraer_datos(self, mensaje, estado_actual):
@@ -110,8 +161,6 @@ class GestorReservas:
 
         if self.detectar_intencion(msg):
             self.reserva_en_curso = True
-            if not self.datos["fecha"]:
-                self.datos["fecha"] = datetime.now().strftime("%d/%m/%Y")
 
         self._extraer_fecha_regex(msg)
         self._extraer_hora_regex(msg, estado_actual)
@@ -131,8 +180,8 @@ class GestorReservas:
             or self.datos["telefono"]
         ):
             self.reserva_en_curso = True
-            if not self.datos["fecha"]:
-                self.datos["fecha"] = datetime.now().strftime("%d/%m/%Y")
+            if self.detectar_intencion(msg):
+                self.reserva_en_curso = True
 
     def _deberia_usar_llm_extractor(self):
         if not self.llm_client or not self.model_name:
@@ -173,7 +222,7 @@ Reglas:
 - Si el cliente dice "hoy", usa {hoy}.
 - Si dice "mañana", usa la fecha de mañana respecto a {hoy}.
 - La hora debe ir en formato HH:MM.
-- Si el cliente dice una hora aproximada clara como "a las 2 y media", devuelve 14:30 solo si el propio texto deja claro que es comida/tarde. Si no, mantén la interpretación más prudente posible.
+- Interpretaras cualquier hora como horario de restaurante (PM), por ejemplo "a las 8" → "20:00".
 - Si el mensaje parece contener solo un nombre, devuélvelo en "nombre".
 - Si contiene un teléfono español, devuélvelo sin espacios.
 - Devuelve solo JSON, sin explicaciones, sin bloques markdown.
@@ -235,16 +284,15 @@ Mensaje del cliente:
 
         if extraidos.get("intencion_reserva") is True:
             self.reserva_en_curso = True
-            if not self.datos["fecha"]:
-                self.datos["fecha"] = datetime.now().strftime("%d/%m/%Y")
 
         nueva_fecha = self._normalizar_fecha_extraida(extraidos.get("fecha"))
+        nueva_fecha = None
         nueva_hora = self._normalizar_hora_extraida(extraidos.get("hora"))
         nuevas_personas = self._normalizar_personas_extraidas(extraidos.get("personas"))
         nuevo_nombre = self._normalizar_nombre_extraido(extraidos.get("nombre"))
         nuevo_telefono = self._normalizar_telefono_extraido(extraidos.get("telefono"))
 
-        if nueva_fecha and nueva_fecha != self.datos["fecha"]:
+        if nueva_fecha and not self.datos["fecha"]:
             self.datos["fecha"] = nueva_fecha
             self._reset_disponibilidad()
 
@@ -324,7 +372,37 @@ Mensaje del cliente:
         return None
 
     def _extraer_fecha_regex(self, msg):
-        hoy = datetime.now()
+        dias_semana = {
+            "lunes": 0,
+            "martes": 1,
+            "miercoles": 2,
+            "miércoles": 2,
+            "jueves": 3,
+            "viernes": 4,
+            "sabado": 5,
+            "sábado": 5,
+            "domingo": 6
+        }
+        # CASO: "lunes que viene", "martes que viene", etc.
+        for nombre_dia, num_dia in dias_semana.items():
+
+    # "próximo jueves", "proximo jueves", "jueves que viene"
+            if (
+                f"proximo {nombre_dia}" in msg or
+                f"próximo {nombre_dia}" in msg or
+                f"{nombre_dia} que viene" in msg
+            ):
+                hoy = datetime.now()
+
+                dias_hasta = (num_dia - hoy.weekday()) % 7
+                dias_hasta += 7  # SIEMPRE siguiente semana
+
+                fecha = hoy + timedelta(days=dias_hasta)
+                self.datos["fecha"] = fecha.strftime("%d/%m/%Y")
+
+                print("DEBUG DETECTADO PROXIMO DIA:", self.datos["fecha"])
+                return
+            hoy = datetime.now()
 
         if "hoy" in msg:
             self.datos["fecha"] = hoy.strftime("%d/%m/%Y")
@@ -368,6 +446,7 @@ Mensaje del cliente:
                 if fecha_formateada != self.datos["fecha"]:
                     self.datos["fecha"] = fecha_formateada
                     self._reset_disponibilidad()
+
             except ValueError:
                 pass
 
@@ -571,11 +650,13 @@ Mensaje del cliente:
             self.alternativas = []
         else:
             self.datos["mesa_id"] = None
-            self.alternativas = self.servicio.db.buscar_huecos_alternativos(
+            raw_alternativas = self.servicio.db.buscar_huecos_alternativos(
                 self.servicio.normalizar_fecha(self.datos["fecha"]),
                 self.datos["hora"],
                 self.datos["personas"]
             )
+            # Filtrar solo las que están en horario de cocina
+            self.alternativas = [h for h in raw_alternativas if self.es_hora_en_horario_cocina(h)]
 
     def generar_respuesta_controlada(self):
         if self.estado == "PIDIENDO_FECHA":

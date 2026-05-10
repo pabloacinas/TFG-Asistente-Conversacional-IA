@@ -30,7 +30,7 @@ class Config:
     # Esto equivale a 5 pares de pregunta-respuesta (ÓPTIMO para tu modelo)
     
     # Configuración de RAG (Retrieval-Augmented Generation)
-    CHUNK_SIZE = 800         # Tamaño máximo de cada fragmento (caracteres)
+    CHUNK_SIZE = 800        # Tamaño máximo de cada fragmento (caracteres)
     CHUNK_OVERLAP = 100      # Solapamiento entre fragmentos para no perder contexto
     TOP_K_RESULTS = 4        # Número de fragmentos más relevantes a recuperar por consulta
     DB_PATH_VECTORIAL = "vector_db"    # Directorio de la DB vectorial
@@ -41,8 +41,10 @@ class Config:
     CAPACIDAD_MAX_POR_HORA = 20  # Aforo máximo del restaurante por turno
     
     # Archivos
-    ARCHIVO_PDF = "Carta de Restaurante para Pruebas RAG.pdf"
+    ARCHIVO_PDF = "Carta de Alchi Burger.pdf"
     ARCHIVO_CARTA_MD = "carta_cache.md"  # Archivo de caché para el texto extraído
+    ARCHIVO_HORARIO_PDF = "horario.pdf"
+    ARCHIVO_HORARIO_MD = "horario_cache.md"
     
     # Configuración de interfaz
     MOSTRAR_INFO_CONTEXTO = True  # Mostrar información del contexto en cada turno

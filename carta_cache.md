@@ -1,59 +1,73 @@
-# **Restaurante L'Alchimie Gastronomique**
+# **ALCHI BURGER**
 
-Menú de Temporada - Edición Invierno
+*Artesanía en cada mordisco | Ingredientes de origen local*
 
-### **Introducción y Filosofía**
+## **ENTRANTES Y ENSALADAS**
 
-Bienvenido a *L'Alchimie*. Nuestra cocina se basa en el producto de proximidad (KM 0). El menú que presentamos a continuación está sujeto a cambios según disponibilidad de lonja y mercado.
+**Patatas Alchi 5.50€**
 
-## **I. Entrantes Fríos y Ensaladas**
+Corte grueso, doble cocción, servidas con sal de romero y dip de alioli de ajo asado.
 
-- **Tártar de Atún Rojo Bluefin:** Aderezado con soja cítrica, aguacate de la Axarquía y perlas de wasabi. **24,00€**
-  - *Nota: Contiene gluten (soja) y pescado.*
-- **Ensalada de Burrata Ahumada:** Tomates de colgar confitados, pesto de pistacho siciliano y rúcula selvática. **18,50€**
-- *Aviso: Los frutos de cáscara se pueden sustituir por semillas de girasol bajo petición.*
-- **Carpaccio de Wagyu A5:** Con lascas de queso Idiazábal ahumado y aceite de trufa blanca. **29,00€**
+**Alitas Bourbon 8.90€**
 
-### **II. Entrantes Calientes**
+6 unidades de alitas de pollo de corral marinadas 24h y glaseadas en reducción de Bourbon y azúcar moreno.
 
-- **Pulpo a la Brasa sobre Crema de Patata:** Con pimentón de la Vera y aire de mar. **22,00€**
-- **Croquetas de Cecina de León (6 uds):** Bechamel cremosa con leche de vaca frisona. **14,00€**
-  - *Suplemento por unidad extra: 2,50€.*
-- **Alcachofas de Tudela:** Con virutas de jamón ibérico de bellota y yema de huevo campero a baja temperatura. **19,00€**
+**Nachos de la Casa 10.50€**
 
-# **III. Platos Principales: El Mar**
+Totopos de maíz artesanos, guacamole fresco, crema agria, pico de gallo y chili con carne (opcional).
 
-*Todos nuestros pescados provienen de pesca sostenible.*
+**Ensalada Alchi Green 9.50€**
 
-- **Lubina Salvaje a la Sal:** Acompañada de verduras de temporada al vapor. **28,00€**
-- **Bacalao Skrei en Tempura:** Con muselina de ajo negro y pimientos del cristal. **26,50€**
-- **Arroz Meloso de Bogavante (Mínimo 2 personas):** Precio indicado por persona. **32,00€/pax** *Tiempo de espera estimado: 25-30 minutos.*
+Mezcla de brotes tiernos, tomates cherry confitados, queso de cabra caramelizado, nueces pecánicas y vinagreta de miel y mostaza antigua.
 
-# **IV. Platos Principales: La Tierra**
+# **NUESTRAS HAMBURGUESAS**
 
-- **Solomillo de Ternera de Ávila:** 250g de carne a la parrilla. **27,00€**
-- **Paletilla de Cordero Lechal:** Cocinada 24 horas a baja temperatura en su propio jugo. **34,00€**
-- **Magret de Pato con Reducción de Oporto:** Y puré de manzana ácida. **25,00€**
+*Carnes de vaca madurada 45 días, picada diariamente. Servidas en pan brioche artesanal con patatas fritas incluidas.*
 
-### **V. Postres y Quesos**
+**La Alchi Clásica 12.90€**
 
-- **Tabla de Quesos Nacionales:** Selección de 4 variedades con membrillo artesano. **16,00€**
-- **Coulant de Chocolate 80%:** Con helado de vainilla de Tahití. **8,50€**
-- **Torrija Caramelizada en Pan de Brioche:** Con crema inglesa. **9,00€**
+Vaca (200g), queso cheddar fundido, lechuga romana, tomate, cebolla morada y salsa secreta "Alchi".
 
-# **Información Importante (Letra Pequeña para RAG)**
+**Trufa & Bosque 14.50€**
 
-#### **Horarios y Suplementos**
+Vaca (200g), emulsión de setas, lascas de queso Idiazábal ahumado, rúcula y aceite de trufa blanca.
 
-- El servicio de pan y aperitivo tiene un coste de **2,50€ por comensal** (obligatorio).
-- Los precios indicados incluyen el 10% de IVA.
-- **Cenas de viernes, sábados y festivos:** Se aplicará un suplemento de servicio nocturno del 5% sobre el total de la factura.
-- Los grupos de más de 8 personas deberán optar obligatoriamente por uno de nuestros menús degustación (consultar con el personal).
+**Picante Volcánico 13.50€**
 
-#### **Aviso de Alérgenos**
+Vaca (200g), queso pepper jack, jalapeños, bacon glaseado en miel de sriracha y cebolla frita.
 
-Aunque ponemos el máximo cuidado, no podemos garantizar la ausencia total de trazas de alérgenos debido a que todos los platos se elaboran en la misma cocina. Si tiene una alergia severa, por favor, notifíquelo antes de realizar su pedido.
+#### **La Vegetal Premium (V) 12.50€**
 
-#### **Política de Cancelación**
+Medallón de proteína de guisante y remolacha, queso de anacardos, aguacate y mayonesa de kimchi vegana.
 
-Para reservas de más de 6 personas, se requiere una tarjeta de crédito como garantía. Las cancelaciones realizadas con menos de 24 horas de antelación tendrán un cargo de **20€ por persona**.
+**MENÚ INFANTIL 8.50€**
+
+*Para menores de 12 años. Incluye zumo o agua y una bola de helado.*
+
+- **Alchi Kid:** Cheeseburger simple (100g) solo carne y queso, con patatas.
+- **Crispy Chicken Tenders:** Solomillos de pollo empanados en cereales con patatas.
+
+# **OFERTA ESPECIAL: ALCHI PARA DOS 35.00€**
+
+*La combinación perfecta para compartir experiencias.*
+
+- 1 Entrante a elegir (excepto Nachos).
+- 2 Hamburguesas a elegir (Clásica).
+- 2 Bebidas (Refresco o Cerveza de barril).
+- 1 Postre a compartir.
+
+# **POSTRES**
+
+# **Cheesecake de Pistacho 6.50€**
+
+Tarta de queso cremosa con base de galleta artesana y praliné de pistacho.
+
+**Cookie Skillet 7.00€**
+
+Galleta recién horneada con chips de chocolate negro, servida con helado de vainilla.
+
+#### **BEBIDAS**
+
+- **Refrescos:** Coca-Cola, Coca-Cola Zero, Fanta Naranja, Sprite, Aquarius Limón **2.80€**
+- **Cervezas:** Mahou Cinco Estrellas (Grifo), Alhambra Reserva 1925, Stella Artois, Coronita **3.20€**
+- **Agua Mineral:** Bezoya (500ml) **2.00€**
