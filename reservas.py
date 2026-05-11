@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from db_manager import DBManager
 from config import Config
+from llm_chat import generar_respuesta
 
 
 class ServicioReservasReal:
@@ -22,10 +23,10 @@ class ServicioReservasReal:
 
 
 class GestorReservas:
-    def __init__(self, llm_client=None, model_name=None):
+    def __init__(self, llm_client=None):
         self.servicio = ServicioReservasReal()
         self.llm_client = llm_client
-        self.model_name = model_name
+        self.ultima_mesas_asignadas = []
         self.reset()
 
     def reset(self):
@@ -37,7 +38,7 @@ class GestorReservas:
             "personas": None,
             "nombre": None,
             "telefono": None,
-            "mesa_id": None
+            "mesa_ids": []
         }
         self.disponibilidad_comprobada = False
         self.alternativas = []
@@ -121,16 +122,18 @@ class GestorReservas:
             self.actualizar_estado()
 
         if self.estado == "LISTO":
-            ok = self.servicio.db.crear_reserva_con_mesa(
+            mesas_asignadas = list(self.datos["mesa_ids"])
+            ok = self.servicio.db.crear_reserva_con_mesas(
                 self.servicio.normalizar_fecha(self.datos["fecha"]),
                 self.datos["hora"],
                 self.datos["personas"],
                 self.datos["nombre"],
                 self.datos["telefono"],
-                self.datos["mesa_id"]
+                self.datos["mesa_ids"]
             )
 
             if ok:
+                self.ultima_mesas_asignadas = mesas_asignadas
                 respuesta = (
                     f"Reserva confirmada para {self.datos['personas']} personas "
                     f"el {self.datos['fecha']} a las {self.datos['hora']}, "
@@ -162,7 +165,7 @@ class GestorReservas:
         if self.detectar_intencion(msg):
             self.reserva_en_curso = True
 
-        self._extraer_fecha_regex(msg)
+        self._extraer_fecha_regex(msg, estado_actual)
         self._extraer_hora_regex(msg, estado_actual)
         self._extraer_personas_regex(msg, estado_actual)
         self._extraer_telefono_regex(msg)
@@ -184,7 +187,7 @@ class GestorReservas:
                 self.reserva_en_curso = True
 
     def _deberia_usar_llm_extractor(self):
-        if not self.llm_client or not self.model_name:
+        if not self.llm_client:
             return False
 
         if not self.reserva_en_curso and self.estado == "INACTIVO":
@@ -242,17 +245,16 @@ Mensaje del cliente:
 """
 
         try:
-            respuesta = self.llm_client.chat.completions.create(
-                model=self.model_name,
-                messages=[
+            contenido = generar_respuesta(
+                self.llm_client,
+                [
                     {"role": "system", "content": system_prompt.strip()},
-                    {"role": "user", "content": user_prompt.strip()}
+                    {"role": "user", "content": user_prompt.strip()},
                 ],
+                model=Config.GEMINI_MODEL,
                 temperature=0,
-                max_tokens=200
-            )
-
-            contenido = respuesta.choices[0].message.content.strip()
+                max_tokens=200,
+            ).strip()
             contenido = self._limpiar_json_llm(contenido)
             data = json.loads(contenido)
 
@@ -371,7 +373,7 @@ Mensaje del cliente:
 
         return None
 
-    def _extraer_fecha_regex(self, msg):
+    def _extraer_fecha_regex(self, msg, estado_actual=None):
         dias_semana = {
             "lunes": 0,
             "martes": 1,
@@ -383,17 +385,43 @@ Mensaje del cliente:
             "sábado": 5,
             "domingo": 6
         }
+        meses = {
+            "enero": 1,
+            "ene": 1,
+            "febrero": 2,
+            "feb": 2,
+            "marzo": 3,
+            "mar": 3,
+            "abril": 4,
+            "abr": 4,
+            "mayo": 5,
+            "may": 5,
+            "junio": 6,
+            "jun": 6,
+            "julio": 7,
+            "jul": 7,
+            "agosto": 8,
+            "ago": 8,
+            "septiembre": 9,
+            "setiembre": 9,
+            "sep": 9,
+            "sept": 9,
+            "octubre": 10,
+            "oct": 10,
+            "noviembre": 11,
+            "nov": 11,
+            "diciembre": 12,
+            "dic": 12,
+        }
+        hoy = datetime.now()
+
         # CASO: "lunes que viene", "martes que viene", etc.
         for nombre_dia, num_dia in dias_semana.items():
-
-    # "próximo jueves", "proximo jueves", "jueves que viene"
             if (
                 f"proximo {nombre_dia}" in msg or
                 f"próximo {nombre_dia}" in msg or
                 f"{nombre_dia} que viene" in msg
             ):
-                hoy = datetime.now()
-
                 dias_hasta = (num_dia - hoy.weekday()) % 7
                 dias_hasta += 7  # SIEMPRE siguiente semana
 
@@ -402,7 +430,16 @@ Mensaje del cliente:
 
                 print("DEBUG DETECTADO PROXIMO DIA:", self.datos["fecha"])
                 return
-            hoy = datetime.now()
+
+        # CASO: día suelto "miercoles" o "el miercoles"
+        for nombre_dia, num_dia in dias_semana.items():
+            if re.search(rf"\b(?:el\s+)?{re.escape(nombre_dia)}\b", msg):
+                dias_hasta = (num_dia - hoy.weekday()) % 7
+                fecha = hoy + timedelta(days=dias_hasta)
+                self.datos["fecha"] = fecha.strftime("%d/%m/%Y")
+
+                print("DEBUG DETECTADO DIA:", self.datos["fecha"])
+                return
 
         if "hoy" in msg:
             self.datos["fecha"] = hoy.strftime("%d/%m/%Y")
@@ -411,6 +448,135 @@ Mensaje del cliente:
         if "mañana" in msg or "manana" in msg:
             self.datos["fecha"] = (hoy + timedelta(days=1)).strftime("%d/%m/%Y")
             return
+
+        patron_dia_proximo_mes = re.search(
+            r"\b(?:el\s+)?(?:(?:dia|día)\s+)?(\d{1,2})\s*(?:de|del)?\s*(?:(?:proximo|próximo)\s+mes|mes\s+que\s+viene)\b",
+            msg,
+        )
+        if patron_dia_proximo_mes:
+            dia = int(patron_dia_proximo_mes.group(1))
+            mes = hoy.month + 1
+            anio = hoy.year
+            if mes > 12:
+                mes = 1
+                anio += 1
+
+            try:
+                fecha = datetime(anio, mes, dia)
+                fecha_formateada = fecha.strftime("%d/%m/%Y")
+                if fecha_formateada != self.datos["fecha"]:
+                    self.datos["fecha"] = fecha_formateada
+                    self._reset_disponibilidad()
+                return
+            except ValueError:
+                pass
+
+        patron_dia_que_viene = re.search(
+            r"\b(?:el\s+)?(?:(?:dia|día)\s+)?(\d{1,2})\s+que\s+viene\b",
+            msg,
+        )
+        if patron_dia_que_viene:
+            dia = int(patron_dia_que_viene.group(1))
+            offset_inicial = 0 if dia > hoy.day else 1
+
+            for offset in range(offset_inicial, 13):
+                mes = hoy.month + offset
+                anio = hoy.year + ((mes - 1) // 12)
+                mes = ((mes - 1) % 12) + 1
+
+                try:
+                    fecha = datetime(anio, mes, dia)
+                    fecha_formateada = fecha.strftime("%d/%m/%Y")
+                    if fecha_formateada != self.datos["fecha"]:
+                        self.datos["fecha"] = fecha_formateada
+                        self._reset_disponibilidad()
+                    return
+                except ValueError:
+                    continue
+
+        if estado_actual == "PIDIENDO_FECHA":
+            patron_dia_solo = re.fullmatch(
+                r"(?:el\s+)?(?:(?:dia|día)\s+)?(\d{1,2})",
+                msg,
+            )
+            if patron_dia_solo:
+                dia = int(patron_dia_solo.group(1))
+                offset_inicial = 0 if dia >= hoy.day else 1
+
+                for offset in range(offset_inicial, 13):
+                    mes = hoy.month + offset
+                    anio = hoy.year + ((mes - 1) // 12)
+                    mes = ((mes - 1) % 12) + 1
+
+                    try:
+                        fecha = datetime(anio, mes, dia)
+                        fecha_formateada = fecha.strftime("%d/%m/%Y")
+                        if fecha_formateada != self.datos["fecha"]:
+                            self.datos["fecha"] = fecha_formateada
+                            self._reset_disponibilidad()
+                        return
+                    except ValueError:
+                        continue
+
+        patron_dia_mes_texto = re.search(
+            r"\b(?:el\s+)?(\d{1,2})(?:\s*(?:de|del)\s*|\s+)([a-záéíóúñ]+)(?:\s+(?:de|del)?\s*(\d{2,4}))?\b",
+            msg,
+        )
+        if patron_dia_mes_texto:
+            dia = int(patron_dia_mes_texto.group(1))
+            mes_txt = patron_dia_mes_texto.group(2)
+            anio_txt = patron_dia_mes_texto.group(3)
+
+            if mes_txt in meses:
+                mes = meses[mes_txt]
+                anio = hoy.year
+                if anio_txt:
+                    anio = int(anio_txt)
+                    if anio < 100:
+                        anio += 2000
+
+                try:
+                    fecha = datetime(anio, mes, dia)
+                    if not anio_txt and fecha.date() < hoy.date():
+                        fecha = datetime(anio + 1, mes, dia)
+
+                    fecha_formateada = fecha.strftime("%d/%m/%Y")
+                    if fecha_formateada != self.datos["fecha"]:
+                        self.datos["fecha"] = fecha_formateada
+                        self._reset_disponibilidad()
+                    return
+                except ValueError:
+                    pass
+
+        patron_mes_dia_texto = re.search(
+            r"\b([a-záéíóúñ]+)\s+(\d{1,2})(?:\s+(?:de|del)?\s*(\d{2,4}))?\b",
+            msg,
+        )
+        if patron_mes_dia_texto:
+            mes_txt = patron_mes_dia_texto.group(1)
+            dia = int(patron_mes_dia_texto.group(2))
+            anio_txt = patron_mes_dia_texto.group(3)
+
+            if mes_txt in meses:
+                mes = meses[mes_txt]
+                anio = hoy.year
+                if anio_txt:
+                    anio = int(anio_txt)
+                    if anio < 100:
+                        anio += 2000
+
+                try:
+                    fecha = datetime(anio, mes, dia)
+                    if not anio_txt and fecha.date() < hoy.date():
+                        fecha = datetime(anio + 1, mes, dia)
+
+                    fecha_formateada = fecha.strftime("%d/%m/%Y")
+                    if fecha_formateada != self.datos["fecha"]:
+                        self.datos["fecha"] = fecha_formateada
+                        self._reset_disponibilidad()
+                    return
+                except ValueError:
+                    pass
 
         match_completa = re.search(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b", msg)
         if match_completa:
@@ -451,6 +617,41 @@ Mensaje del cliente:
                 pass
 
     def _extraer_hora_regex(self, msg, estado_actual):
+        def normalizar_hora_restaurante(h_int, m_int, texto_original):
+            """
+            Interpreta la hora según contexto de restaurante:
+            - Si se indica explícitamente mañana/am, mantiene formato AM.
+            - Si se indica tarde/noche/pm, convierte a PM.
+            - Sin contexto explícito, por defecto interpreta horas < 12 como PM.
+            """
+            if h_int > 23 or m_int > 59:
+                return None
+
+            texto = texto_original.lower()
+            es_am = (
+                "de la mañana" in texto
+                or re.search(r"\ba\.?m\.?\b", texto) is not None
+            )
+            es_pm = (
+                "de la tarde" in texto
+                or "de la noche" in texto
+                or "de la cena" in texto
+                or re.search(r"\bp\.?m\.?\b", texto) is not None
+            )
+
+            if es_am and not es_pm:
+                if h_int == 12:
+                    h_int = 0
+            elif es_pm:
+                if h_int < 12:
+                    h_int += 12
+            else:
+                # Comportamiento por defecto del asistente: horario de restaurante (PM).
+                if h_int < 12:
+                    h_int += 12
+
+            return f"{h_int:02d}:{m_int:02d}"
+
         match_hora = re.search(
             r"(?:a las|a la|sobre las|sobre la|hora)\s*(\d{1,2})(?:[:h](\d{2}))?|\b(\d{1,2}):(\d{2})\b",
             msg
@@ -464,14 +665,9 @@ Mensaje del cliente:
                 h_int = int(h)
                 m_int = int(m)
 
-                if h_int > 23 or m_int > 59:
+                nueva_hora = normalizar_hora_restaurante(h_int, m_int, msg)
+                if nueva_hora is None:
                     return
-
-                # Todo se interpreta como horario de restaurante (PM)
-                if h_int < 12:
-                    h_int += 12
-
-                nueva_hora = f"{h_int:02d}:{m_int:02d}"
                 if nueva_hora != self.datos["hora"]:
                     self.datos["hora"] = nueva_hora
                     self._reset_disponibilidad()
@@ -486,10 +682,9 @@ Mensaje del cliente:
                     h_int = int(solo_numero.group(1))
                     m_int = int(solo_numero.group(2) or "00")
 
-                    if h_int > 23 or m_int > 59:
+                    nueva_hora = normalizar_hora_restaurante(h_int, m_int, msg)
+                    if nueva_hora is None:
                         return
-
-                    nueva_hora = f"{h_int:02d}:{m_int:02d}"
                     if nueva_hora != self.datos["hora"]:
                         self.datos["hora"] = nueva_hora
                         self._reset_disponibilidad()
@@ -598,7 +793,7 @@ Mensaje del cliente:
         return nombre.title()
 
     def _reset_disponibilidad(self):
-        self.datos["mesa_id"] = None
+        self.datos["mesa_ids"] = []
         self.disponibilidad_comprobada = False
         self.alternativas = []
 
@@ -620,7 +815,7 @@ Mensaje del cliente:
         elif not self.disponibilidad_comprobada:
             self.estado = "COMPROBANDO_DISPONIBILIDAD"
             self.ultima_accion = "COMPROBAR_DISPONIBILIDAD"
-        elif self.datos["mesa_id"] is None:
+        elif not self.datos["mesa_ids"]:
             self.estado = "OFRECIENDO_ALTERNATIVAS"
             self.ultima_accion = "OFRECER_ALTERNATIVAS"
         elif not self.datos["nombre"]:
@@ -637,7 +832,7 @@ Mensaje del cliente:
         if not self.datos["fecha"] or not self.datos["hora"] or not self.datos["personas"]:
             return
 
-        mesa = self.servicio.db.encontrar_mesa_disponible(
+        mesas = self.servicio.db.encontrar_combinacion_mesas_disponibles(
             self.servicio.normalizar_fecha(self.datos["fecha"]),
             self.datos["hora"],
             self.datos["personas"]
@@ -645,11 +840,11 @@ Mensaje del cliente:
 
         self.disponibilidad_comprobada = True
 
-        if mesa:
-            self.datos["mesa_id"] = mesa["id"]
+        if mesas:
+            self.datos["mesa_ids"] = [mesa["id"] for mesa in mesas]
             self.alternativas = []
         else:
-            self.datos["mesa_id"] = None
+            self.datos["mesa_ids"] = []
             raw_alternativas = self.servicio.db.buscar_huecos_alternativos(
                 self.servicio.normalizar_fecha(self.datos["fecha"]),
                 self.datos["hora"],

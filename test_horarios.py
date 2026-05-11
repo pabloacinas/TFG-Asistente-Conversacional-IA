@@ -102,6 +102,17 @@ class TestHorarios(unittest.TestCase):
         self.gestor.procesar_turno(f"quiero reservar para el {fecha_miercoles}")
         self.assertEqual(self.gestor.datos["fecha"], fecha_miercoles)
 
+    def test_detecta_dia_suelto_en_frase(self):
+        fecha_miercoles = self.obtener_proximo_dia("miercoles")
+        self.gestor.procesar_turno("quiero reservar para el miercoles")
+        self.assertEqual(self.gestor.datos["fecha"], fecha_miercoles)
+
+    def test_detecta_dia_suelto_como_respuesta(self):
+        fecha_jueves = self.obtener_proximo_dia("jueves")
+        self.gestor.procesar_turno("quiero reservar")
+        self.gestor.procesar_turno("jueves")
+        self.assertEqual(self.gestor.datos["fecha"], fecha_jueves)
+
     # -----------------------
     # TEST ALTERNATIVAS
     # -----------------------

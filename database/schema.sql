@@ -17,14 +17,16 @@ CREATE TABLE IF NOT EXISTS mesas (
 
 -- Relación Reservas-Mesas (Asignación física)
 CREATE TABLE IF NOT EXISTS reservas_mesas (
-    reserva_id INTEGER,
-    mesa_id INTEGER,
+    reserva_id INTEGER NOT NULL,
+    mesa_id INTEGER NOT NULL,
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
+    PRIMARY KEY(reserva_id, mesa_id),
     FOREIGN KEY(reserva_id) REFERENCES reservas(id),
     FOREIGN KEY(mesa_id) REFERENCES mesas(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_reservas_fecha_hora ON reservas(fecha, hora);
 CREATE INDEX IF NOT EXISTS idx_asignacion_tiempo ON reservas_mesas(fecha, hora_inicio, hora_fin);
+CREATE INDEX IF NOT EXISTS idx_asignacion_mesa_fecha ON reservas_mesas(mesa_id, fecha, hora_inicio, hora_fin);

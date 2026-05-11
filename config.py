@@ -2,7 +2,7 @@ import os
 
 """
 Configuración del Asistente Alchi
-Parámetros de conexión a LM Studio y configuración del sistema
+Parámetros del sistema y conexión con Vertex AI + Gemini
 """
 
 
@@ -12,24 +12,26 @@ class Config:
     Centraliza todos los parámetros configurables.
     """
     
-    # Configuración de LM Studio
-    LM_STUDIO_BASE_URL = "http://localhost:1234/v1"
-    LM_STUDIO_API_KEY = "sk-lm-jFlKn5OW:UyVY24IrqfspZCJCGFru"
-    
-    # Configuración del modelo
-    MODEL_NAME = "local-model"  # LM Studio detecta automáticamente el modelo cargado
+    # =========================
+    # GOOGLE CLOUD / GEMINI
+    # =========================
+    GCP_PROJECT_ID = "project-46852ceb-4e38-4026-ab4"
+    GCP_LOCATION = "us-central1"
+    GEMINI_MODEL = "gemini-2.5-flash"
+
+    # =========================
+    # CONFIGURACIÓN MODELO
+    # =========================
     TEMPERATURE = 0.7
     MAX_TOKENS = 800
     
-    # Configuración de ventana deslizante (Sliding Window)
-    # Para Gemma3-4b con context window de 3,072 tokens:
-    # - System Prompt (carta): ~1,200 tokens
-    # - MAX_TOKENS (respuesta): 800 tokens
-    # - Disponible para historial: ~1,070 tokens (~5 turnos seguros)
-    MAX_MENSAJES_HISTORIAL = 10  # Número máximo de mensajes (sin contar System Prompt)
-    # Esto equivale a 5 pares de pregunta-respuesta (ÓPTIMO para tu modelo)
+    # Ventana deslizante del historial.
+    # Esta limitación era clave con modelos locales pequeños; con Gemini puede
+    # relajarse si se quiere priorizar memoria conversacional sobre coste/latencia.
+    MAX_MENSAJES_HISTORIAL = 20
     
-    # Configuración de RAG (Retrieval-Augmented Generation)
+    # Parámetros de RAG. El tamaño de chunk y el reranking se mantuvieron por
+    # calidad de recuperación, aunque ya no son una restricción dura de contexto.
     CHUNK_SIZE = 800        # Tamaño máximo de cada fragmento (caracteres)
     CHUNK_OVERLAP = 100      # Solapamiento entre fragmentos para no perder contexto
     TOP_K_RESULTS = 4        # Número de fragmentos más relevantes a recuperar por consulta

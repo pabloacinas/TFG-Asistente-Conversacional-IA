@@ -25,7 +25,7 @@ Asistente de IA local avanzado para el restaurante **L'Alchimie Gastronomique**.
    ```bash
    pip install -r requirements.txt
    ```
-2. **LM Studio:** Servidor local activo en el puerto 1234 con un modelo cargado.
+2. **Google Cloud (Vertex AI):** Proyecto con permisos para usar Gemini y credenciales configuradas en el entorno.
 3. **Base de Datos:** El archivo SQLite se genera automáticamente. Para configurar las mesas, usa el script en `database/schema.sql`.
 
 ## 📁 Estructura del Proyecto
@@ -42,4 +42,4 @@ Asistente de IA local avanzado para el restaurante **L'Alchimie Gastronomique**.
 - **Reservas:** Inicia el flujo con frases naturales ("Quiero una mesa para mañana", "Reserva a nombre de Juan"). El sistema te guiará paso a paso.
 
 ---
-*Desarrollado como parte del TFG - Sistema RAG y Gestión de Reservas con IA Local.*
+*Desarrollado como parte del TFG - Sistema RAG y Gestión de Reservas con Vertex AI + Gemini.*

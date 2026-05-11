@@ -10,7 +10,6 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 os.environ["USE_TORCH"] = "True"
 
-from openai import OpenAI
 import chromadb
 from chromadb.utils import embedding_functions
 from marker.converters.pdf import PdfConverter
@@ -18,6 +17,8 @@ from marker.models import create_model_dict
 
 from config import Config
 from reservas import GestorReservas
+from llm_provider import obtener_cliente
+from llm_chat import generar_respuesta_stream
 from sentence_transformers import SentenceTransformer, util
 model_rerank = SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -70,30 +71,32 @@ def procesar_pdf(ruta_pdf, ruta_cache, converter=None, nombre="archivo"):
 # =========================
 
 def segmentar_texto(texto):
-    print(f"Segmentando texto en fragmentos de {Config.CHUNK_SIZE} caracteres...")
-    chunks = []
-    inicio = 0
-
-    while inicio < len(texto):
-        fin = inicio + Config.CHUNK_SIZE
-
-        if fin < len(texto):
-            ultimo_salto = texto.rfind("\n", inicio, fin)
-            if ultimo_salto != -1 and ultimo_salto > inicio + (Config.CHUNK_SIZE // 2):
-                fin = ultimo_salto
-
-        chunk = texto[inicio:fin].strip()
-        if chunk:
-            chunks.append(chunk)
-
-        inicio = fin - Config.CHUNK_OVERLAP
-        if inicio < 0:
-            inicio = 0
-        if inicio >= len(texto):
-            break
-
-    print(f"Se han generado {len(chunks)} fragmentos.")
-    return chunks
+    # LEGACY DESACTIVADO:
+    # print(f"Segmentando texto en fragmentos de {Config.CHUNK_SIZE} caracteres...")
+    # chunks = []
+    # inicio = 0
+    #
+    # while inicio < len(texto):
+    #     fin = inicio + Config.CHUNK_SIZE
+    #
+    #     if fin < len(texto):
+    #         ultimo_salto = texto.rfind("\n", inicio, fin)
+    #         if ultimo_salto != -1 and ultimo_salto > inicio + (Config.CHUNK_SIZE // 2):
+    #             fin = ultimo_salto
+    #
+    #     chunk = texto[inicio:fin].strip()
+    #     if chunk:
+    #         chunks.append(chunk)
+    #
+    #     inicio = fin - Config.CHUNK_OVERLAP
+    #     if inicio < 0:
+    #         inicio = 0
+    #     if inicio >= len(texto):
+    #         break
+    #
+    # print(f"Se han generado {len(chunks)} fragmentos.")
+    # return chunks
+    return [texto]
 
 
 def crear_indice_rag(markdown):
@@ -119,8 +122,11 @@ def crear_indice_rag(markdown):
             embedding_function=embedding_fn
         )
 
-        chunks = segmentar_texto(markdown)
-        ids = [f"chunk_{i}" for i in range(len(chunks))]
+        chunks = [markdown]
+        ids = ["chunk_0"]
+
+        # chunks = segmentar_texto(markdown)
+        # ids = [f"chunk_{i}" for i in range(len(chunks))]
 
         coleccion.add(documents=chunks, ids=ids)
 
@@ -145,44 +151,60 @@ def buscar_contexto(coleccion, consulta):
 # =========================
 
 def rerank_chunks(consulta, chunks, top_k=2):
+    # LEGACY DESACTIVADO:
+    # if not chunks:
+    #     return ""
+    #
+    # emb_query = model_rerank.encode(consulta, convert_to_tensor=True)
+    # emb_chunks = model_rerank.encode(chunks, convert_to_tensor=True)
+    #
+    # scores = util.cos_sim(emb_query, emb_chunks)[0]
+    #
+    # ranked = sorted(
+    #     zip(chunks, scores),
+    #     key=lambda x: x[1],
+    #     reverse=True
+    # )
+    #
+    # top_chunks = [chunk for chunk, _ in ranked[:top_k]]
+    # return "\n\n".join(top_chunks)
     if not chunks:
         return ""
-
-    emb_query = model_rerank.encode(consulta, convert_to_tensor=True)
-    emb_chunks = model_rerank.encode(chunks, convert_to_tensor=True)
-
-    scores = util.cos_sim(emb_query, emb_chunks)[0]
-
-    # Ordenar por relevancia
-    ranked = sorted(
-        zip(chunks, scores),
-        key=lambda x: x[1],
-        reverse=True
-    )
-
-    top_chunks = [chunk for chunk, _ in ranked[:top_k]]
-
-    return "\n\n".join(top_chunks)
+    return "\n\n".join(chunks[:top_k])
 
 #========================= # PROMPT # =========================
 def crear_system_prompt(contexto_carta, contexto_horario): 
-    return f""" Eres 'Alchi', el metre de L'Alchimie. Sé amable, breve y profesional.
-    HORARIO: {contexto_horario} MENÚ: {contexto_carta} 
-    REGLAS IMPORTANTES: 
-    - No inventes enlaces ni datos.
-    - Toda la información debe salir EXCLUSIVAMENTE del contexto proporcionado. 
-    - Si algo no está en el contexto, di que no dispones de esa información. 
-    - El restaurante NO tiene enlaces web en este sistema. 
-    IMPORTANTE: 
-    - Diferencia claramente entre: 
-        1. Horario de apertura del restaurante
-        2. Horario de servicio de cocina (comidas y cenas) 
-        - Cuando el usuario pregunte por: 
-            - "cenas" → responde SIEMPRE con horario de CENAS (cocina) 
-            - "comidas" → responde SIEMPRE con horario de COMIDAS (cocina) 
-            - "horario" general → puedes dar ambos, pero diferenciados 
-            - Las reservas SOLO se hacen en horario de cocina. 
-            - SOLO se podrá comer y cenar en horario de cocina. """
+    return f"""Eres 'Alchi', metre de L'Alchimie, y atiendes como asistente telefónico.
+
+Objetivo principal:
+- Conversación rápida y fluida.
+- Respuestas breves, claras y directas.
+
+Estilo:
+- Máximo 1-2 frases por respuesta.
+- Evita introducciones largas, relleno o repeticiones.
+- Sé amable y profesional, pero conciso.
+- Haz solo una pregunta de seguimiento cada vez cuando falte información.
+
+Reglas de contenido:
+- Usa EXCLUSIVAMENTE este contexto.
+- No inventes datos ni enlaces.
+- Si falta información, dilo de forma corta.
+- El restaurante no tiene enlaces web en este sistema.
+
+Contexto horario:
+{contexto_horario}
+
+Contexto menú:
+{contexto_carta}
+
+Reglas de horario:
+- Distingue horario de apertura del restaurante y horario de cocina.
+- Si preguntan por "cenas", da horario de cenas (cocina).
+- Si preguntan por "comidas", da horario de comidas (cocina).
+- Si preguntan por "horario" general, da ambos de forma corta.
+- Las reservas solo se realizan en horario de cocina.
+"""
 # =========================
 # CHAT
 # =========================
@@ -192,7 +214,7 @@ def chatear(cliente, coleccion, markdown_horario):
     print("  ASISTENTE ALCHI  ")
     print("=" * 60 + "\n")
 
-    gestor = GestorReservas(llm_client=cliente, model_name=Config.MODEL_NAME)
+    gestor = GestorReservas(llm_client=cliente)
     historial = []
 
     while True:
@@ -212,8 +234,12 @@ def chatear(cliente, coleccion, markdown_horario):
             if gestor.hay_flujo_reserva_activo() or gestor.detectar_intencion(msg):
 
                 respuesta = gestor.procesar_turno(msg)
+                mesas_debug = gestor.datos.get("mesa_ids", [])
+                if not mesas_debug and gestor.ultima_accion == "RESERVA_CONFIRMADA":
+                    mesas_debug = gestor.ultima_mesas_asignadas
 
                 print(f"\n[DEBUG] Datos: {gestor.datos}")
+                print(f"[DEBUG] Mesas asignadas: {mesas_debug if mesas_debug else 'ninguna'}")
                 print(f"[DEBUG] Estado: {gestor.estado}")
                 print(f"[DEBUG] Acción: {gestor.ultima_accion}")
                 print(f"[DEBUG] Sistema: {respuesta}\n")
@@ -222,17 +248,18 @@ def chatear(cliente, coleccion, markdown_horario):
                 continue
 
             # =========================
-            # RAG + RERANKING + LLM
+            # RAG + LLM (SIN OPTIMIZACIONES LEGACY)
             # =========================
-           # ctx = buscar_contexto(coleccion, msg)
-            resultados = coleccion.query(
-                query_texts=[msg],
-                n_results=5  # más recall
-            )
+            ctx = buscar_contexto(coleccion, msg)
 
-            chunks = resultados["documents"][0]
-
-            ctx = rerank_chunks(msg, chunks, top_k=2)
+            # resultados = coleccion.query(
+            #     query_texts=[msg],
+            #     n_results=5
+            # )
+            #
+            # chunks = resultados["documents"][0]
+            #
+            # ctx = rerank_chunks(msg, chunks, top_k=2)
             sys_prompt = crear_system_prompt(ctx, markdown_horario)
 
             mensajes = (
@@ -243,28 +270,24 @@ def chatear(cliente, coleccion, markdown_horario):
 
             print("Alchi: ", end="", flush=True)
 
-            res = cliente.chat.completions.create(
-                model=Config.MODEL_NAME,
-                messages=mensajes,
+            full = ""
+            for chunk in generar_respuesta_stream(
+                cliente,
+                mensajes,
+                model=Config.GEMINI_MODEL,
                 temperature=Config.TEMPERATURE,
                 max_tokens=Config.MAX_TOKENS,
-                stream=True
-            )
-
-            full = ""
-            for chunk in res:
-                if chunk.choices[0].delta.content:
-                    c = chunk.choices[0].delta.content
-                    print(c, end="", flush=True)
-                    full += c
+            ):
+                print(chunk, end="", flush=True)
+                full += chunk
 
             print("\n")
 
             historial.append({"role": "user", "content": msg})
             historial.append({"role": "assistant", "content": full})
 
-            if len(historial) > Config.MAX_MENSAJES_HISTORIAL:
-                historial = historial[-Config.MAX_MENSAJES_HISTORIAL:]
+            # if len(historial) > Config.MAX_MENSAJES_HISTORIAL:
+            #     historial = historial[-Config.MAX_MENSAJES_HISTORIAL:]
 
         except KeyboardInterrupt:
             print("\n\nAdiós.")
@@ -305,10 +328,7 @@ def main():
     if not coleccion:
         return
 
-    cliente = OpenAI(
-        base_url=Config.LM_STUDIO_BASE_URL,
-        api_key=Config.LM_STUDIO_API_KEY
-    )
+    cliente = obtener_cliente()
 
     chatear(cliente, coleccion, horario_md)
 

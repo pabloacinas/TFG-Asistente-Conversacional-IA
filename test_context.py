@@ -4,7 +4,6 @@ Script de Prueba - Gestión de Contexto con Ventana Deslizante
 Permite verificar que el historial se gestiona correctamente
 """
 
-from openai import OpenAI
 from config import Config
 import sys
 
@@ -93,12 +92,12 @@ def mostrar_estado_historial(historial, turno_actual):
             print(f"   [{i}] 🤖 ASSISTANT: {msg['content'][:50]}...")
 
 
-def prueba_con_lm_studio():
+def prueba_con_gemini():
     """
-    Prueba interactiva con LM Studio real.
+    Prueba interactiva con Gemini real.
     """
     print("\n" + "="*70)
-    print("  🧪 PRUEBA REAL CON LM STUDIO")
+    print("  🧪 PRUEBA REAL CON GEMINI")
     print("="*70)
     print("\n📝 Sigue estas instrucciones para probar:\n")
     print("1️⃣  Ejecuta: python main.py")
@@ -114,7 +113,7 @@ def prueba_con_lm_studio():
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--real":
-        prueba_con_lm_studio()
+        prueba_con_gemini()
     else:
         simular_conversacion()
         print("\n💡 TIP: Para ver instrucciones de prueba real, ejecuta:")
