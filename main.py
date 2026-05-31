@@ -2,6 +2,7 @@
 Asistente de IA Local - Alchi (IA + RAG + RESERVAS + HORARIO)
 """
 
+import argparse
 import os
 import sys
 
@@ -12,8 +13,6 @@ os.environ["USE_TORCH"] = "True"
 
 import chromadb
 from chromadb.utils import embedding_functions
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
 
 from config import Config
 from reservas import GestorReservas
@@ -29,6 +28,10 @@ model_rerank = SentenceTransformer("all-MiniLM-L6-v2")
 
 def get_marker_converter():
     try:
+        # Import perezoso: marker arrastra torch/torchvision pesados y a veces
+        # incompatibles. Solo se carga si realmente hay que procesar un PDF.
+        from marker.converters.pdf import PdfConverter
+        from marker.models import create_model_dict
         print("Inicializando modelos de Marker...")
         return PdfConverter(artifact_dict=create_model_dict())
     except Exception as e:
@@ -206,6 +209,52 @@ Reglas de horario:
 - Las reservas solo se realizan en horario de cocina.
 """
 # =========================
+# TURNO (compartido texto/voz)
+# =========================
+
+def procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial):
+    """Generador de chunks de texto para un turno. Decide reserva vs RAG+LLM
+    y actualiza el historial al terminar el stream."""
+    if gestor.hay_flujo_reserva_activo() or gestor.detectar_intencion(msg):
+        respuesta = gestor.procesar_turno(msg)
+        mesas_debug = gestor.datos.get("mesa_ids", [])
+        if not mesas_debug and gestor.ultima_accion == "RESERVA_CONFIRMADA":
+            mesas_debug = gestor.ultima_mesas_asignadas
+
+        print(f"\n[DEBUG] Datos: {gestor.datos}")
+        print(f"[DEBUG] Mesas asignadas: {mesas_debug if mesas_debug else 'ninguna'}")
+        print(f"[DEBUG] Estado: {gestor.estado}")
+        print(f"[DEBUG] Acción: {gestor.ultima_accion}")
+        print(f"[DEBUG] Sistema: {respuesta}\n")
+
+        yield respuesta
+        return
+
+    ctx = buscar_contexto(coleccion, msg)
+    sys_prompt = crear_system_prompt(ctx, markdown_horario)
+
+    mensajes = (
+        [{"role": "system", "content": sys_prompt}] +
+        historial +
+        [{"role": "user", "content": msg}]
+    )
+
+    full = ""
+    for chunk in generar_respuesta_stream(
+        cliente,
+        mensajes,
+        model=Config.GEMINI_MODEL,
+        temperature=Config.TEMPERATURE,
+        max_tokens=Config.MAX_TOKENS,
+    ):
+        full += chunk
+        yield chunk
+
+    historial.append({"role": "user", "content": msg})
+    historial.append({"role": "assistant", "content": full})
+
+
+# =========================
 # CHAT
 # =========================
 
@@ -228,66 +277,10 @@ def chatear(cliente, coleccion, markdown_horario):
             if not msg:
                 continue
 
-            # =========================
-            # RESERVAS (CONTROL TOTAL)
-            # =========================
-            if gestor.hay_flujo_reserva_activo() or gestor.detectar_intencion(msg):
-
-                respuesta = gestor.procesar_turno(msg)
-                mesas_debug = gestor.datos.get("mesa_ids", [])
-                if not mesas_debug and gestor.ultima_accion == "RESERVA_CONFIRMADA":
-                    mesas_debug = gestor.ultima_mesas_asignadas
-
-                print(f"\n[DEBUG] Datos: {gestor.datos}")
-                print(f"[DEBUG] Mesas asignadas: {mesas_debug if mesas_debug else 'ninguna'}")
-                print(f"[DEBUG] Estado: {gestor.estado}")
-                print(f"[DEBUG] Acción: {gestor.ultima_accion}")
-                print(f"[DEBUG] Sistema: {respuesta}\n")
-
-                print(f"Alchi: {respuesta}\n")
-                continue
-
-            # =========================
-            # RAG + LLM (SIN OPTIMIZACIONES LEGACY)
-            # =========================
-            ctx = buscar_contexto(coleccion, msg)
-
-            # resultados = coleccion.query(
-            #     query_texts=[msg],
-            #     n_results=5
-            # )
-            #
-            # chunks = resultados["documents"][0]
-            #
-            # ctx = rerank_chunks(msg, chunks, top_k=2)
-            sys_prompt = crear_system_prompt(ctx, markdown_horario)
-
-            mensajes = (
-                [{"role": "system", "content": sys_prompt}] +
-                historial +
-                [{"role": "user", "content": msg}]
-            )
-
             print("Alchi: ", end="", flush=True)
-
-            full = ""
-            for chunk in generar_respuesta_stream(
-                cliente,
-                mensajes,
-                model=Config.GEMINI_MODEL,
-                temperature=Config.TEMPERATURE,
-                max_tokens=Config.MAX_TOKENS,
-            ):
+            for chunk in procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial):
                 print(chunk, end="", flush=True)
-                full += chunk
-
             print("\n")
-
-            historial.append({"role": "user", "content": msg})
-            historial.append({"role": "assistant", "content": full})
-
-            # if len(historial) > Config.MAX_MENSAJES_HISTORIAL:
-            #     historial = historial[-Config.MAX_MENSAJES_HISTORIAL:]
 
         except KeyboardInterrupt:
             print("\n\nAdiós.")
@@ -302,6 +295,12 @@ def chatear(cliente, coleccion, markdown_horario):
 # =========================
 
 def main():
+    parser = argparse.ArgumentParser(description="Asistente Alchi")
+    grupo = parser.add_mutually_exclusive_group()
+    grupo.add_argument("--voz", action="store_true", help="Modo conversación por voz (STT + TTS)")
+    grupo.add_argument("--texto", action="store_true", help="Modo terminal por texto (por defecto)")
+    args = parser.parse_args()
+
     print("\nIniciando Alchi...")
 
     base = os.path.dirname(__file__)
@@ -330,7 +329,11 @@ def main():
 
     cliente = obtener_cliente()
 
-    chatear(cliente, coleccion, horario_md)
+    if args.voz:
+        from voice import iniciar_bucle_voz
+        iniciar_bucle_voz(cliente, coleccion, horario_md, procesar_turno)
+    else:
+        chatear(cliente, coleccion, horario_md)
 
 
 if __name__ == "__main__":

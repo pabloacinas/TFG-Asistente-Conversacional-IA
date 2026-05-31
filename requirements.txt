@@ -3,3 +3,7 @@ marker-pdf
 chromadb
 sentence-transformers
 pypdf
+google-cloud-speech>=2.27.0
+google-cloud-texttospeech>=2.16.0
+sounddevice>=0.4.6
+numpy

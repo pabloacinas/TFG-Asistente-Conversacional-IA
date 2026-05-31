@@ -50,3 +50,23 @@ class Config:
     
     # Configuración de interfaz
     MOSTRAR_INFO_CONTEXTO = True  # Mostrar información del contexto en cada turno
+
+    # =========================
+    # VOZ (STT + TTS)
+    # =========================
+    # Speech-to-Text
+    STT_LANGUAGE = "es-ES"
+    STT_MODEL = "latest_long"            # alternativa: "chirp_2" para baja latencia
+    STT_SAMPLE_RATE = 16000              # Hz, mono int16 desde el micro
+
+    # Text-to-Speech (Chirp3-HD streaming)
+    TTS_LANGUAGE = "es-ES"
+    TTS_VOICE = "es-ES-Chirp3-HD-Leda"  # fallback automático a Neural2 si no disponible
+    TTS_VOICE_FALLBACK = "es-ES-Neural2-C"
+    TTS_SAMPLE_RATE = 24000              # Chirp3-HD usa 24kHz LINEAR16
+
+    # Comportamiento conversacional
+    VOZ_END_UTTERANCE_SILENCE_MS = 800   # silencio para considerar fin de turno del usuario
+    VOZ_BARGE_IN_ENABLED = True          # cortar TTS si el usuario empieza a hablar
+    VOZ_FRASE_MIN_CHARS = 40             # tamaño mínimo de buffer para flushear frase sin puntuación
+    VOZ_SALUDO_INICIAL = "Hola, soy Alchi de L'Alchimie. ¿En qué puedo ayudarle?"
