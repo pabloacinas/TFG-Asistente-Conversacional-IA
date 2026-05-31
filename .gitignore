@@ -9,3 +9,19 @@ database/
 Vídeo_Demo_ConversacionBot.mp4
 prueba_gemini.py
 prueba_gemini2
+
+# Artefactos generados de LaTeX / memoria
+MemoriaLATEX.zip
+MemoriaLATEX
+MemoriaLATEX/*.aux
+MemoriaLATEX/*.fdb_latexmk
+MemoriaLATEX/*.fls
+MemoriaLATEX/*.lof
+MemoriaLATEX/*.log
+MemoriaLATEX/*.lot
+MemoriaLATEX/*.out
+MemoriaLATEX/*.pdf
+MemoriaLATEX/*.synctex.gz
+MemoriaLATEX/*.tcp
+MemoriaLATEX/*.toc
+MemoriaLATEX/*.tps
