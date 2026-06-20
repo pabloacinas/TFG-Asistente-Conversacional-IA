@@ -102,3 +102,37 @@ def _no_streaming_fallback(cliente, frases_iter, reproductor, cancel_event):
 def hablar_texto(texto, reproductor):
     """Helper síncrono para frases sueltas (saludos, errores)."""
     sintetizar_streaming(iter([texto]), reproductor)
+
+
+def sintetizar_telefonia(texto):
+    """Sintetiza una frase y la devuelve como bytes mu-law (PCMU) a 8 kHz.
+
+    Twilio Media Streams espera audio mu-law mono a 8 kHz. Pedimos a Google TTS
+    LINEAR16 a 8 kHz con una voz Neural2 (Chirp3-HD solo da 24 kHz) y convertimos
+    el PCM de 16 bits a mu-law con audioop (stdlib en Python 3.11).
+    """
+    import audioop
+
+    if not texto or not texto.strip():
+        return b""
+
+    cliente = _get_cliente()
+    voz = tts.VoiceSelectionParams(
+        language_code=Config.TTS_LANGUAGE,
+        name=Config.TELEFONIA_VOZ,
+    )
+    audio_cfg = tts.AudioConfig(
+        audio_encoding=tts.AudioEncoding.LINEAR16,
+        sample_rate_hertz=Config.TELEFONIA_SAMPLE_RATE,
+    )
+    resp = cliente.synthesize_speech(
+        input=tts.SynthesisInput(text=texto),
+        voice=voz,
+        audio_config=audio_cfg,
+    )
+    pcm16 = resp.audio_content
+    # Recortar cabecera WAV (44 bytes) si LINEAR16 viene con cabecera RIFF.
+    if pcm16[:4] == b"RIFF":
+        pcm16 = pcm16[44:]
+    # PCM16 mono -> mu-law (1 byte por muestra).
+    return audioop.lin2ulaw(pcm16, 2)

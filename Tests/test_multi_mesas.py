@@ -13,7 +13,7 @@ class TestAsignacionMultiMesas(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.tmp_dir, "test_alchi.db")
-        self.schema_path = os.path.join(os.path.dirname(__file__), "database", "schema.sql")
+        self.schema_path = os.path.join(os.path.dirname(__file__), "..", "NucleoAlchi", "database", "schema.sql")
 
         self.db = DBManager(self.db_path, self.schema_path)
         self._seed_mesas()

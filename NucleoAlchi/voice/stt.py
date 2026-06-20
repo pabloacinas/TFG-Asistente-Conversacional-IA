@@ -27,10 +27,10 @@ def _reconocedor_path():
     return f"projects/{Config.GCP_PROJECT_ID}/locations/global/recognizers/_"
 
 
-def _build_streaming_config():
+def _build_streaming_config(encoding=None, sample_rate=None):
     decoding = ExplicitDecodingConfig(
-        encoding=ExplicitDecodingConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=Config.STT_SAMPLE_RATE,
+        encoding=encoding or ExplicitDecodingConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=sample_rate or Config.STT_SAMPLE_RATE,
         audio_channel_count=1,
     )
     config = RecognitionConfig(
@@ -49,13 +49,15 @@ def _build_streaming_config():
     )
 
 
-def transcribir_streaming(mic_stream):
+def transcribir_streaming(mic_stream, encoding=None, sample_rate=None):
     """Generador que produce (texto, is_final) consumiendo audio de un MicrofonoStream.
 
     Itera hasta que recibe un resultado final con texto no vacío y termina.
+    Los parámetros opcionales permiten reutilizar la función con audio de
+    telefonía (mu-law a 8 kHz) además del micrófono local (LINEAR16 a 16 kHz).
     """
     cliente = _get_cliente()
-    streaming_config = _build_streaming_config()
+    streaming_config = _build_streaming_config(encoding, sample_rate)
     config_request = StreamingRecognizeRequest(
         recognizer=_reconocedor_path(),
         streaming_config=streaming_config,
@@ -76,3 +78,12 @@ def transcribir_streaming(mic_stream):
             yield texto, result.is_final
             if result.is_final and texto.strip():
                 return
+
+
+def transcribir_streaming_telefonia(mic_stream):
+    """Variante de transcribir_streaming para audio de telefonía (mu-law 8 kHz)."""
+    return transcribir_streaming(
+        mic_stream,
+        encoding=ExplicitDecodingConfig.AudioEncoding.MULAW,
+        sample_rate=Config.TELEFONIA_SAMPLE_RATE,
+    )

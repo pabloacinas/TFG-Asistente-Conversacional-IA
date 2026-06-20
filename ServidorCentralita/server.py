@@ -4,10 +4,16 @@ import mimetypes
 import os
 import queue
 import re
+import sys
 import threading
 import time
 import uuid
 import traceback
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+NUCLEO_PATH = os.path.join(PROJECT_ROOT, "NucleoAlchi")
+if NUCLEO_PATH not in sys.path:
+    sys.path.insert(0, NUCLEO_PATH)
 
 # Almacén en memoria de llamadas activas y logs
 llamadas_activas = {}

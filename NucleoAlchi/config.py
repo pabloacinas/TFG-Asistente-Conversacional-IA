@@ -1,5 +1,9 @@
 import os
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in os.sys.path:
+    os.sys.path.insert(0, _PROJECT_ROOT)
+
 try:
     from private_secrets import (
         TWILIO_ACCOUNT_SID as _TWILIO_ACCOUNT_SID,
@@ -44,8 +48,8 @@ class Config:
     MAX_MENSAJES_HISTORIAL = 20
     
     # Configuración de Base de Datos Real (SQLite)
-    DB_SQLITE_PATH = os.path.join("database", "alchi_restaurante.db")
-    SCHEMA_SQL_PATH = os.path.join("database", "schema.sql")
+    DB_SQLITE_PATH = os.path.join(_PROJECT_ROOT, "database", "alchi_restaurante.db")
+    SCHEMA_SQL_PATH = os.path.join(_PROJECT_ROOT, "NucleoAlchi", "database", "schema.sql")
     CAPACIDAD_MAX_POR_HORA = 20  # Aforo máximo del restaurante por turno
     
     # Archivos
@@ -91,4 +95,20 @@ class Config:
     SMS_ENABLED = True
     SMS_DEFAULT_COUNTRY_CODE = "+34"
     DEBUG_RESERVAS = False
+
+    # =========================
+    # TELEFONÍA (Twilio Voice - Media Streams)
+    # =========================
+    # Twilio envía/recibe audio mu-law (PCMU) mono a 8 kHz en frames de 20 ms.
+    TELEFONIA_SAMPLE_RATE = 8000
+    # Chirp3-HD solo produce 24 kHz; para telefonía usamos una voz Neural2 que
+    # sí puede sintetizarse directamente a 8 kHz.
+    TELEFONIA_VOZ = "es-ES-Neural2-C"
+    # Tamaño de frame mu-law: 8000 Hz * 0.02 s * 1 byte = 160 bytes (20 ms).
+    TELEFONIA_FRAME_BYTES = 160
+    # Host público (wss) para el <Stream> de Twilio. Si se deja vacío, el
+    # servidor lo deduce de la cabecera Host de la petición entrante (ngrok).
+    TELEFONIA_PUBLIC_HOST = ""
+    # Puerto local del servidor de telefonía (el que expones con ngrok).
+    TELEFONIA_PORT = 5050
 

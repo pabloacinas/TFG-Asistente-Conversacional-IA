@@ -158,13 +158,13 @@ class GestorReservas:
                             "¿Quieres que busquemos otra hora?"
                         )
                     elif reason == "no_encontrada":
-                        self.ultima_respuesta_sistema = f"El código introducido no es correcto. Por favor, introduce el código de 4 dígitos {self.datos.get('codigo_confirmacion')} que te ha llegado por SMS."
+                        self.ultima_respuesta_sistema = "El código introducido no es correcto. Por favor, indícame el código de 4 dígitos que te ha llegado por SMS."
                         return self.ultima_respuesta_sistema
                     elif reason == "ya_confirmada":
                         self.reset()
                         return "Esa reserva ya está confirmada."
             else:
-                self.ultima_respuesta_sistema = f"Por favor, indícame el código de 4 dígitos {self.datos.get('codigo_confirmacion')} que has recibido por SMS para confirmar la reserva."
+                self.ultima_respuesta_sistema = "Por favor, indícame el código de 4 dígitos que has recibido por SMS para confirmar la reserva."
                 return self.ultima_respuesta_sistema
 
         respuesta_confirmacion = self._procesar_confirmacion_por_codigo(mensaje)
@@ -218,7 +218,7 @@ class GestorReservas:
                 respuesta = (
                     f"He dejado tu reserva en estado pendiente para {self.datos['personas']} personas "
                     f"el {self.datos['fecha']} a las {self.datos['hora']}, a nombre de {self.datos['nombre']}. "
-                    f"El código de confirmación es {codigo_confirmacion}. Por favor, no cuelgues y dime el código para confirmarla."
+                    f"En breve recibirás un SMS con un código de 4 dígitos. Por favor, no cuelgues y dímelo cuando lo tengas para confirmar la reserva."
                 )
                 enviar_solicitud_confirmacion_async(
                     nombre=self.datos["nombre"],
@@ -421,7 +421,7 @@ class GestorReservas:
                     self.datos["codigo_confirmacion"] = nuevo_codigo
                     self.reserva_mc["codigo_confirmacion"] = nuevo_codigo
                     self.estado = "ESPERANDO_CODIGO_MODIFICACION"
-                    return f"Perfecto, hay disponibilidad. He modificado tu reserva para el {f_actual} a las {h_actual} para {p_actual} personas. El nuevo código de confirmación es {nuevo_codigo}. Por favor, dime el código para confirmarla definitivamente."
+                    return f"Perfecto, hay disponibilidad. He modificado tu reserva para el {f_actual} a las {h_actual} para {p_actual} personas. En breve recibirás un SMS con el nuevo código. Dímelo cuando lo tengas para confirmarla definitivamente."
                 else:
                     self.reset()
                     return "Ha ocurrido un error al modificar la reserva. Por favor inténtalo más tarde."

@@ -6,6 +6,10 @@ import argparse
 import os
 import sys
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
@@ -98,7 +102,8 @@ Reglas de horario:
 - Si preguntan por "comidas", da horario de comidas (cocina).
 - Si preguntan por "horario" general, da ambos de forma corta.
 - Las reservas solo se realizan en horario de cocina.
-- Cuando una reserva quede registrada como pendiente, indícale al cliente que no cuelgue, que revise su SMS y que te diga el código de 4 dígitos recibido para confirmarla.
+- Cuando una reserva quede registrada como pendiente, indícale al cliente que no cuelgue y que espere el SMS con el código para dártelo.
+- No menciones el código en ningún momento; el cliente debe leerlo del SMS y decírtelo.
 - Si no te facilita el código de 4 dígitos, la reserva no quedará confirmada.
 """
 # =========================
@@ -198,7 +203,7 @@ def main():
 
     print("\nIniciando Alchi...")
 
-    base = os.path.dirname(__file__)
+    base = PROJECT_ROOT
 
     ruta_carta_pdf = os.path.join(base, Config.ARCHIVO_PDF)
     ruta_carta_md = os.path.join(base, Config.ARCHIVO_CARTA_MD)
@@ -220,7 +225,7 @@ def main():
     cliente = obtener_cliente()
 
     if args.server:
-        from server import iniciar_servidor
+        from ServidorCentralita.server import iniciar_servidor
         iniciar_servidor(cliente, carta_md, horario_md, host=args.host, port=args.port, voz_enabled=args.voz)
     elif args.voz:
         from voice import iniciar_bucle_voz

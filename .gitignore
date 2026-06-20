@@ -5,6 +5,7 @@ __pycache__/
 
 vector_db/
 database/
+NucleoAlchi/database/alchi_restaurante.db
 
 Vídeo_Demo_ConversacionBot.mp4
 prueba_gemini.py
