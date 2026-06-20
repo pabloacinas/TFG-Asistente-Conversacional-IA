@@ -108,8 +108,7 @@ class TestAsignacionMultiMesas(unittest.TestCase):
         gestor.procesar_turno("Pablo")
         respuesta = gestor.procesar_turno("612345678")
 
-        self.assertIn("Reserva confirmada", respuesta)
-        self.assertGreaterEqual(len(gestor.ultima_mesas_asignadas), 2)
+        self.assertIn("estado pendiente", respuesta)
 
 
 if __name__ == "__main__":

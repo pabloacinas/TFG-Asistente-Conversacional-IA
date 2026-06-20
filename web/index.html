@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centralita Telefónica Alchi - Alchimie Resto</title>
+    <link rel="stylesheet" href="/web/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Iconos Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="logo-area">
+            <div class="logo-indicator active-pulse"></div>
+            <h1>Centralita Alchi <span>L'Alchimie Metre v1.0</span></h1>
+        </div>
+        <div class="system-stats">
+            <div class="stat-badge">
+                <i data-lucide="server"></i>
+                <span>Servidor: <strong id="server-status">Online</strong></span>
+            </div>
+            <div class="stat-badge">
+                <i data-lucide="git-branch"></i>
+                <span>Hilos Activos: <strong id="thread-count">0</strong></span>
+            </div>
+            <div class="stat-badge">
+                <i data-lucide="phone-call"></i>
+                <span>Llamadas Totales: <strong id="total-calls">0</strong></span>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- Columna de Control de Centralita -->
+        <section class="panel control-panel">
+            <div class="panel-header">
+                <h2><i data-lucide="phone-forwarded"></i> Simulación de Llamada Entrante</h2>
+            </div>
+            
+            <form id="call-simulator-form" class="call-form">
+                <div class="form-group">
+                    <label for="caller-phone">Número de Teléfono</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="smartphone"></i>
+                        <input type="tel" id="caller-phone" placeholder="e.g. +34 600 111 222" required value="+34600000000">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="caller-name">Nombre del Cliente (Opcional)</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user"></i>
+                        <input type="text" id="caller-name" placeholder="e.g. Juan Pérez" value="Carlos Gómez">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-call active-pulse">
+                    <i data-lucide="phone-incoming"></i>
+                    Recibir Llamada Entrante
+                </button>
+            </form>
+
+            <div class="panel-header margin-top">
+                <h2><i data-lucide="cpu"></i> Hilos en Ejecución / Llamadas Activas</h2>
+            </div>
+            
+            <div class="calls-list-container">
+                <div id="no-calls-message" class="empty-state">
+                    <i data-lucide="phone-off"></i>
+                    <p>No hay llamadas activas ni hilos corriendo en este momento.</p>
+                </div>
+                <div id="calls-list" class="calls-list"></div>
+            </div>
+        </section>
+
+        <!-- Columna de Consola de la Conversación -->
+        <section class="panel console-panel">
+            <div class="panel-header" id="console-header">
+                <div class="call-info-large">
+                    <h2><i data-lucide="headset"></i> Consola del Asistente</h2>
+                    <p class="subtitle">Selecciona una llamada activa de la izquierda para interactuar y escuchar el hilo.</p>
+                </div>
+            </div>
+
+            <!-- Opciones de simulación de voz (se mostrará si se inicia con --voz) -->
+            <div class="voice-controls-bar" id="voice-options-bar" style="display: none;">
+                <label class="toggle-control">
+                    <input type="checkbox" id="chk-tts" checked>
+                    <span><i data-lucide="volume-2" class="voice-icon"></i> Respuesta de Voz (TTS)</span>
+                </label>
+                <label class="toggle-control">
+                    <input type="checkbox" id="chk-continuous">
+                    <span><i data-lucide="refresh-cw" class="voice-icon"></i> Responder al Hablar (Manos Libres)</span>
+                </label>
+            </div>
+
+            <div class="chat-container" id="chat-container">
+                <div class="empty-chat-state">
+                    <i data-lucide="message-square"></i>
+                    <p>Esperando llamada activa para visualizar el flujo conversacional.</p>
+                </div>
+            </div>
+
+            <!-- Visualización de Onda de Voz (TTS / Respuesta) -->
+            <div class="voice-activity-container" id="voice-waves" style="display: none;">
+                <span>Alchi está respondiendo...</span>
+                <div class="voice-waves">
+                    <div class="wave wave1"></div>
+                    <div class="wave wave2"></div>
+                    <div class="wave wave3"></div>
+                    <div class="wave wave4"></div>
+                    <div class="wave wave5"></div>
+                </div>
+            </div>
+
+            <div class="input-container" id="chat-input-area" style="display: none;">
+                <input type="text" id="chat-message-input" placeholder="Escribe el mensaje o simula la voz del cliente..." autocomplete="off">
+                <button id="btn-mic" class="btn btn-mic" style="display: none;" title="Simular Entrada por Voz (Micrófono)">
+                    <i data-lucide="mic"></i>
+                </button>
+                <button id="btn-send-message" class="btn btn-send">
+                    <i data-lucide="send"></i>
+                </button>
+                <button id="btn-hangup-call" class="btn btn-danger">
+                    <i data-lucide="phone-off"></i>
+                    Colgar
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Terminal de Logs de Consola del Servidor -->
+    <footer class="server-logs-panel">
+        <div class="logs-header">
+            <h3><i data-lucide="terminal"></i> Registro de Hilos y Eventos del Servidor (Stdout)</h3>
+            <button id="btn-clear-logs" class="btn-text"><i data-lucide="trash-2"></i> Limpiar</button>
+        </div>
+        <div class="logs-content" id="server-logs">
+            <div class="log-line system-msg">[Sistema] Iniciando monitorización de hilos...</div>
+        </div>
+    </footer>
+
+    <script src="/web/app.js"></script>
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,5 +1,18 @@
 import os
 
+try:
+    from private_secrets import (
+        TWILIO_ACCOUNT_SID as _TWILIO_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN as _TWILIO_AUTH_TOKEN,
+        TWILIO_FROM_NUMBER as _TWILIO_FROM_NUMBER,
+        LMSTUDIO_TOKEN as _LMSTUDIO_TOKEN,
+    )
+except Exception:
+    _TWILIO_ACCOUNT_SID = ""
+    _TWILIO_AUTH_TOKEN = ""
+    _TWILIO_FROM_NUMBER = ""
+    _LMSTUDIO_TOKEN = ""
+
 """
 Configuración del Asistente Alchi
 Parámetros del sistema y conexión con Vertex AI + Gemini
@@ -30,13 +43,6 @@ class Config:
     # relajarse si se quiere priorizar memoria conversacional sobre coste/latencia.
     MAX_MENSAJES_HISTORIAL = 20
     
-    # Parámetros de RAG. El tamaño de chunk y el reranking se mantuvieron por
-    # calidad de recuperación, aunque ya no son una restricción dura de contexto.
-    CHUNK_SIZE = 800        # Tamaño máximo de cada fragmento (caracteres)
-    CHUNK_OVERLAP = 100      # Solapamiento entre fragmentos para no perder contexto
-    TOP_K_RESULTS = 4        # Número de fragmentos más relevantes a recuperar por consulta
-    DB_PATH_VECTORIAL = "vector_db"    # Directorio de la DB vectorial
-    
     # Configuración de Base de Datos Real (SQLite)
     DB_SQLITE_PATH = os.path.join("database", "alchi_restaurante.db")
     SCHEMA_SQL_PATH = os.path.join("database", "schema.sql")
@@ -47,9 +53,7 @@ class Config:
     ARCHIVO_CARTA_MD = "carta_cache.md"  # Archivo de caché para el texto extraído
     ARCHIVO_HORARIO_PDF = "horario.pdf"
     ARCHIVO_HORARIO_MD = "horario_cache.md"
-    
-    # Configuración de interfaz
-    MOSTRAR_INFO_CONTEXTO = True  # Mostrar información del contexto en cada turno
+
 
     # =========================
     # VOZ (STT + TTS)
@@ -64,9 +68,27 @@ class Config:
     TTS_VOICE = "es-ES-Chirp3-HD-Leda"  # fallback automático a Neural2 si no disponible
     TTS_VOICE_FALLBACK = "es-ES-Neural2-C"
     TTS_SAMPLE_RATE = 24000              # Chirp3-HD usa 24kHz LINEAR16
+    
+    # Simulación de Voz en la Centralita Web
+    # True: Utiliza la API de Google Cloud TTS para voces hiperrealistas (Chirp3/Neural2)
+    # False: Utiliza la síntesis nativa del navegador para conseguir la latencia mínima absoluta
+    TTS_WEB_USAR_GOOGLE_CLOUD = False
 
     # Comportamiento conversacional
     VOZ_END_UTTERANCE_SILENCE_MS = 800   # silencio para considerar fin de turno del usuario
     VOZ_BARGE_IN_ENABLED = True          # cortar TTS si el usuario empieza a hablar
     VOZ_FRASE_MIN_CHARS = 40             # tamaño mínimo de buffer para flushear frase sin puntuación
-    VOZ_SALUDO_INICIAL = "Hola, soy Alchi de L'Alchimie. ¿En qué puedo ayudarle?"
+    VOZ_SALUDO_INICIAL = "Hola, soy Alchi. ¿En qué puedo ayudarle?"
+
+    # =========================
+    # SMS (Twilio)
+    # =========================
+    # Credenciales de Twilio cargadas desde private_secrets.py (no versionado)
+    TWILIO_ACCOUNT_SID = _TWILIO_ACCOUNT_SID
+    TWILIO_AUTH_TOKEN = _TWILIO_AUTH_TOKEN
+    TWILIO_FROM_NUMBER = _TWILIO_FROM_NUMBER
+    LMSTUDIO_TOKEN = _LMSTUDIO_TOKEN
+    SMS_ENABLED = True
+    SMS_DEFAULT_COUNTRY_CODE = "+34"
+    DEBUG_RESERVAS = False
+

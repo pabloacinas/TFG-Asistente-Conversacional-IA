@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS reservas (
     personas INTEGER NOT NULL,
     nombre TEXT NOT NULL,
     telefono TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'confirmada',
+    codigo_confirmacion TEXT,
+    confirmado_en TIMESTAMP,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

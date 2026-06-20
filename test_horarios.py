@@ -18,7 +18,7 @@ class TestHorarios(unittest.TestCase):
         }
         objetivo = dias[nombre_dia.lower()]
         hoy = datetime.now()
-        for i in range(1, 8):
+        for i in range(0, 8):
             futuro = hoy + timedelta(days=i)
             if futuro.weekday() == objetivo:
                 return futuro.strftime("%d/%m/%Y")

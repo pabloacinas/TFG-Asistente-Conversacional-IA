@@ -11,15 +11,10 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 os.environ["USE_TORCH"] = "True"
 
-import chromadb
-from chromadb.utils import embedding_functions
-
 from config import Config
 from reservas import GestorReservas
 from llm_provider import obtener_cliente
 from llm_chat import generar_respuesta_stream
-from sentence_transformers import SentenceTransformer, util
-model_rerank = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 # =========================
@@ -69,111 +64,7 @@ def procesar_pdf(ruta_pdf, ruta_cache, converter=None, nombre="archivo"):
         return ""
 
 
-# =========================
-# RAG
-# =========================
-
-def segmentar_texto(texto):
-    # LEGACY DESACTIVADO:
-    # print(f"Segmentando texto en fragmentos de {Config.CHUNK_SIZE} caracteres...")
-    # chunks = []
-    # inicio = 0
-    #
-    # while inicio < len(texto):
-    #     fin = inicio + Config.CHUNK_SIZE
-    #
-    #     if fin < len(texto):
-    #         ultimo_salto = texto.rfind("\n", inicio, fin)
-    #         if ultimo_salto != -1 and ultimo_salto > inicio + (Config.CHUNK_SIZE // 2):
-    #             fin = ultimo_salto
-    #
-    #     chunk = texto[inicio:fin].strip()
-    #     if chunk:
-    #         chunks.append(chunk)
-    #
-    #     inicio = fin - Config.CHUNK_OVERLAP
-    #     if inicio < 0:
-    #         inicio = 0
-    #     if inicio >= len(texto):
-    #         break
-    #
-    # print(f"Se han generado {len(chunks)} fragmentos.")
-    # return chunks
-    return [texto]
-
-
-def crear_indice_rag(markdown):
-    try:
-        os.makedirs(Config.DB_PATH_VECTORIAL, exist_ok=True)
-
-        cliente_db = chromadb.PersistentClient(path=Config.DB_PATH_VECTORIAL)
-
-        embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
-
-        nombre = "carta_restaurante"
-
-        try:
-            cliente_db.delete_collection(name=nombre)
-            print("Colección anterior eliminada.")
-        except:
-            pass
-
-        coleccion = cliente_db.create_collection(
-            name=nombre,
-            embedding_function=embedding_fn
-        )
-
-        chunks = [markdown]
-        ids = ["chunk_0"]
-
-        # chunks = segmentar_texto(markdown)
-        # ids = [f"chunk_{i}" for i in range(len(chunks))]
-
-        coleccion.add(documents=chunks, ids=ids)
-
-        print("Base vectorial creada.")
-        return coleccion
-
-    except Exception as e:
-        print(f"Error RAG: {e}")
-        return None
-
-
-def buscar_contexto(coleccion, consulta):
-    try:
-        res = coleccion.query(query_texts=[consulta], n_results=Config.TOP_K_RESULTS)
-        return "\n\n---\n\n".join(res["documents"][0])
-    except Exception as e:
-        print(f"Error búsqueda: {e}")
-        return ""
-
-# =========================
-# Reranking
-# =========================
-
-def rerank_chunks(consulta, chunks, top_k=2):
-    # LEGACY DESACTIVADO:
-    # if not chunks:
-    #     return ""
-    #
-    # emb_query = model_rerank.encode(consulta, convert_to_tensor=True)
-    # emb_chunks = model_rerank.encode(chunks, convert_to_tensor=True)
-    #
-    # scores = util.cos_sim(emb_query, emb_chunks)[0]
-    #
-    # ranked = sorted(
-    #     zip(chunks, scores),
-    #     key=lambda x: x[1],
-    #     reverse=True
-    # )
-    #
-    # top_chunks = [chunk for chunk, _ in ranked[:top_k]]
-    # return "\n\n".join(top_chunks)
-    if not chunks:
-        return ""
-    return "\n\n".join(chunks[:top_k])
+# RAG y Reranking eliminados (se pasa el menú completo directamente en el prompt de Gemini)
 
 #========================= # PROMPT # =========================
 def crear_system_prompt(contexto_carta, contexto_horario): 
@@ -207,12 +98,14 @@ Reglas de horario:
 - Si preguntan por "comidas", da horario de comidas (cocina).
 - Si preguntan por "horario" general, da ambos de forma corta.
 - Las reservas solo se realizan en horario de cocina.
+- Cuando una reserva quede registrada como pendiente, indícale al cliente que no cuelgue, que revise su SMS y que te diga el código de 4 dígitos recibido para confirmarla.
+- Si no te facilita el código de 4 dígitos, la reserva no quedará confirmada.
 """
 # =========================
 # TURNO (compartido texto/voz)
 # =========================
 
-def procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial):
+def procesar_turno(msg, cliente, carta_md, markdown_horario, gestor, historial):
     """Generador de chunks de texto para un turno. Decide reserva vs RAG+LLM
     y actualiza el historial al terminar el stream."""
     if gestor.hay_flujo_reserva_activo() or gestor.detectar_intencion(msg):
@@ -230,8 +123,7 @@ def procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial)
         yield respuesta
         return
 
-    ctx = buscar_contexto(coleccion, msg)
-    sys_prompt = crear_system_prompt(ctx, markdown_horario)
+    sys_prompt = crear_system_prompt(carta_md, markdown_horario)
 
     mensajes = (
         [{"role": "system", "content": sys_prompt}] +
@@ -258,7 +150,7 @@ def procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial)
 # CHAT
 # =========================
 
-def chatear(cliente, coleccion, markdown_horario):
+def chatear(cliente, carta_md, markdown_horario):
     print("\n" + "=" * 60)
     print("  ASISTENTE ALCHI  ")
     print("=" * 60 + "\n")
@@ -278,7 +170,7 @@ def chatear(cliente, coleccion, markdown_horario):
                 continue
 
             print("Alchi: ", end="", flush=True)
-            for chunk in procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial):
+            for chunk in procesar_turno(msg, cliente, carta_md, markdown_horario, gestor, historial):
                 print(chunk, end="", flush=True)
             print("\n")
 
@@ -296,9 +188,12 @@ def chatear(cliente, coleccion, markdown_horario):
 
 def main():
     parser = argparse.ArgumentParser(description="Asistente Alchi")
-    grupo = parser.add_mutually_exclusive_group()
-    grupo.add_argument("--voz", action="store_true", help="Modo conversación por voz (STT + TTS)")
-    grupo.add_argument("--texto", action="store_true", help="Modo terminal por texto (por defecto)")
+    parser.add_argument("--server", action="store_true", help="Modo servidor HTTP multi-hilo (Centralita Local)")
+    parser.add_argument("--voz", action="store_true", help="Modo conversación por voz (STT + TTS para terminal, o habilita simulación por voz en el servidor)")
+    parser.add_argument("--texto", action="store_true", help="Modo terminal por texto (por defecto)")
+    
+    parser.add_argument("--port", type=int, default=8000, help="Puerto para el servidor HTTP (por defecto: 8000)")
+    parser.add_argument("--host", type=str, default="localhost", help="Host para el servidor HTTP (por defecto: localhost)")
     args = parser.parse_args()
 
     print("\nIniciando Alchi...")
@@ -322,18 +217,16 @@ def main():
 
     horario_md = procesar_pdf(ruta_horario_pdf, ruta_horario_md, converter, "horario")
 
-    print("Construyendo RAG...")
-    coleccion = crear_indice_rag(carta_md)
-    if not coleccion:
-        return
-
     cliente = obtener_cliente()
 
-    if args.voz:
+    if args.server:
+        from server import iniciar_servidor
+        iniciar_servidor(cliente, carta_md, horario_md, host=args.host, port=args.port, voz_enabled=args.voz)
+    elif args.voz:
         from voice import iniciar_bucle_voz
-        iniciar_bucle_voz(cliente, coleccion, horario_md, procesar_turno)
+        iniciar_bucle_voz(cliente, carta_md, horario_md, procesar_turno)
     else:
-        chatear(cliente, coleccion, horario_md)
+        chatear(cliente, carta_md, horario_md)
 
 
 if __name__ == "__main__":

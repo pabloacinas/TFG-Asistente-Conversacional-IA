@@ -1,0 +1,192 @@
+[2026-06-17 23:53:25] ============================================================
+[2026-06-17 23:53:25]   CENTRALITA LOCAL ALCHI — HILO EN ESCUCHA ACTIVO
+[2026-06-17 23:53:25]   Servidor corriendo en: http://localhost:8000
+[2026-06-17 23:53:25]   Para simular llamadas, abre esa dirección en tu navegador
+[2026-06-17 23:53:25] ============================================================
+[2026-06-17 23:53:44] HTTP 127.0.0.1 - - "GET / HTTP/1.1" 200 -
+[2026-06-17 23:53:44] HTTP 127.0.0.1 - - "GET /web/style.css HTTP/1.1" 200 -
+[2026-06-17 23:53:44] HTTP 127.0.0.1 - - "GET /web/app.js HTTP/1.1" 200 -
+[2026-06-17 23:53:44] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:45] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:45] HTTP 127.0.0.1 - - code 404, message Recurso no encontrado
+[2026-06-17 23:53:45] HTTP 127.0.0.1 - - "GET /api/config HTTP/1.1" 200 -
+[2026-06-17 23:53:45] HTTP 127.0.0.1 - - "GET /favicon.ico HTTP/1.1" 404 -
+[2026-06-17 23:53:46] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:47] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:47] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:48] [HiloLlamada-691e346d] Hilo INICIADO para la llamada 691e346d (+34600000000 - Carlos Gómez)
+[2026-06-17 23:53:48] HTTP 127.0.0.1 - - "POST /api/llamadas HTTP/1.1" 201 -
+[2026-06-17 23:53:48] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:48] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:49] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:51] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:51] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:52] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:53] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:53] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:55] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:55] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:56] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:57] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:58] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:53:58] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:53:59] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:00] HTTP 127.0.0.1 - - "POST /api/llamadas/691e346d-9086-4b73-a1b9-b8cb3c927135/mensaje HTTP/1.1" 200 -
+[2026-06-17 23:54:00] [HiloLlamada-691e346d] Procesando mensaje de usuario: 'Quiero hacer una reserva para mañana a las 21:00'
+[2026-06-17 23:54:00] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:01] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:03] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:03] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:04] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:05] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:06] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:07] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:07] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:09] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:09] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:10] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:11] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:12] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:13] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:13] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:14] [HiloLlamada-691e346d] Procesando mensaje de usuario: 'para 2, a nombre de Pablo'
+ HTTP/1.1" 200 -
+[2026-06-17 23:54:15] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:15] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:16] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:17] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:18] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:19] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:19] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:21] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:21] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:21] HTTP 127.0.0.1 - - "POST /api/llamadas/691e346d-9086-4b73-a1b9-b8cb3c927135/mensaje HTTP/1.1" 200 -
+[2026-06-17 23:54:21] [HiloLlamada-691e346d] Procesando mensaje de usuario: '684633443'
+[2026-06-17 23:54:22] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:23] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:24] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:25] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:25] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:27] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:27] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:28] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:29] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:30] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:31] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:31] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:33] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:33] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:34] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:35] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:36] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:37] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:38] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:39] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:39] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:40] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:41] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:42] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:43] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:43] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:45] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+ -
+[2026-06-17 23:54:46] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:47] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:48] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:49] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:49] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:50] [HiloLlamada-93344623] Hilo INICIADO para la llamada 93344623 (+34600000000 - Andujar)
+[2026-06-17 23:54:50] HTTP 127.0.0.1 - - "POST /api/llamadas HTTP/1.1" 201 -
+[2026-06-17 23:54:50] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:51] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:51] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:52] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:53] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:54] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:55] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:55] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:57] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:57] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:54:58] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:54:59] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:00] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:01] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:01] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:02] HTTP 127.0.0.1 - - "POST /api/llamadas/93344623-97d8-4bc5-947d-6c164a54b85f/mensaje HTTP/1.1" 200 -
+[2026-06-17 23:55:02] [HiloLlamada-93344623] Procesando mensaje de usuario: 'Quiero saber que burgers teneis'
+[2026-06-17 23:55:03] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:03] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:05] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:05] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:06] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:07] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:08] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:09] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:09] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:11] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:11] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:12] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:13] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:14] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:15] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:15] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:17] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:17] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:18] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:19] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:20] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:21] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:21] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:23] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:23] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:24] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:25] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:26] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:27] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:27] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:29] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:29] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:30] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:31] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:32] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:33] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:33] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:35] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:35] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:36] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:37] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:38] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:39] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:39] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:41] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:41] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:42] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:43] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:44] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:45] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:45] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:47] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:47] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:48] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:49] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:50] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:51] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:51] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:53] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:53] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:54] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:55] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:56] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:57] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -
+[2026-06-17 23:55:57] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-17 23:55:58] Apagando servidor de centralita...
+[2026-06-17 23:55:58] [HiloLlamada-93344623] Recibida señal de colgar.
+[2026-06-17 23:55:58] [HiloLlamada-691e346d] Recibida señal de colgar.
+[2026-06-17 23:55:58] [HiloLlamada-93344623] Hilo FINALIZADO para la llamada 93344623
+[2026-06-18 00:02:42] ============================================================
+[2026-06-18 00:02:42]   CENTRALITA LOCAL ALCHI — HILO EN ESCUCHA ACTIVO
+[2026-06-18 00:02:42]   Servidor corriendo en: http://localhost:8000
+[2026-06-18 00:02:42]   Para simular llamadas, abre esa dirección en tu navegador
+[2026-06-18 00:02:42] ============================================================
+[2026-06-18 00:03:29] HTTP 127.0.0.1 - - "GET /api/logs HTTP/1.1" 200 -
+[2026-06-18 00:03:29] HTTP 127.0.0.1 - - "GET /api/llamadas HTTP/1.1" 200 -

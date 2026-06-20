@@ -25,3 +25,7 @@ MemoriaLATEX/*.synctex.gz
 MemoriaLATEX/*.tcp
 MemoriaLATEX/*.toc
 MemoriaLATEX/*.tps
+
+# Secretos locales
+private_secrets.py
+TFG-Asistente(tokenLMStudio).txt

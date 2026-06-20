@@ -48,10 +48,6 @@ class GestorReservas:
         self.alternativas = []
         self.ultima_respuesta_sistema = ""
         self.ultima_accion = None
-        self.accion_mc = None
-        self.reserva_mc = None
-        self.reservas_candidatas_mc = []
-        self.nuevos_datos_mc = {"fecha": None, "hora": None, "personas": None}
 
     def es_hora_en_horario_cocina(self, hora_str):
         """
@@ -101,25 +97,6 @@ class GestorReservas:
         return self.reserva_en_curso or self.estado != "INACTIVO"
 
     def procesar_turno(self, mensaje):
-        msg_lower = mensaje.lower().strip()
-        
-        if self.estado == "INACTIVO":
-            if any(p in msg_lower for p in ["cancelar", "anular"]):
-                self.estado = "PIDIENDO_CODIGO_MC"
-                self.accion_mc = "CANCELAR"
-                self.ultima_respuesta_sistema = "De acuerdo, vamos a cancelar tu reserva. Por favor, indícame tu código de confirmación de 4 dígitos. Si no lo sabes, dime el nombre a la que está la reserva."
-                return self.ultima_respuesta_sistema
-            elif any(p in msg_lower for p in ["modificar", "cambiar", "retrasar", "adelantar"]):
-                self.estado = "PIDIENDO_CODIGO_MC"
-                self.accion_mc = "MODIFICAR"
-                self.ultima_respuesta_sistema = "De acuerdo, vamos a modificar tu reserva. Por favor, indícame tu código de confirmación de 4 dígitos. Si no lo sabes, dime el nombre a la que está la reserva."
-                return self.ultima_respuesta_sistema
-
-        respuesta_mc = self._procesar_estados_mc(mensaje)
-        if respuesta_mc:
-            self.ultima_respuesta_sistema = respuesta_mc
-            return respuesta_mc
-
         if self.estado == "ESPERANDO_CODIGO":
             codigo = self._extraer_codigo_4_digitos(mensaje)
             if codigo:
@@ -292,157 +269,6 @@ class GestorReservas:
             return "Esa reserva ya está confirmada."
 
         return "No he podido confirmar la reserva en este momento. Inténtalo de nuevo en unos minutos."
-
-    def _iniciar_flujo_mc(self):
-        fecha_mostrar = datetime.strptime(self.reserva_mc['fecha'], "%Y-%m-%d").strftime("%d/%m/%Y")
-        detalles = f"Tienes una reserva a nombre de {self.reserva_mc['nombre']}, para {self.reserva_mc['personas']} personas, el día {fecha_mostrar} a las {self.reserva_mc['hora']}."
-        
-        if self.accion_mc == "CANCELAR":
-            self.estado = "CONFIRMANDO_CANCELACION"
-            return f"{detalles} ¿Confirmas que deseas cancelarla? (Sí/No)"
-        else:
-            self.estado = "RECOPILANDO_DATOS_MODIFICACION"
-            self.nuevos_datos_mc = {"fecha": None, "hora": None, "personas": None}
-            return f"{detalles} ¿Qué datos quieres modificar? (ej. 'cambiar a las 15:00', 'para 4 personas', 'el día 20')"
-
-    def _procesar_estados_mc(self, mensaje):
-        msg_lower = mensaje.lower().strip()
-
-        if self.estado == "PIDIENDO_CODIGO_MC":
-            codigo = self._extraer_codigo_4_digitos(mensaje)
-            if codigo:
-                reserva = self.servicio.db.obtener_reserva_por_codigo(codigo)
-                if reserva:
-                    self.reserva_mc = reserva
-                    return self._iniciar_flujo_mc()
-                else:
-                    return "No he encontrado ninguna reserva activa con ese código. ¿Puedes repetirlo o decirme a qué nombre está?"
-            else:
-                self._extraer_nombre_regex(mensaje, "PIDIENDO_NOMBRE")
-                nombre = self.datos.get("nombre")
-                if not nombre:
-                    nombre = self._limpiar_nombre(mensaje)
-                if nombre:
-                    reservas = self.servicio.db.obtener_reservas_por_nombre(nombre)
-                    if not reservas:
-                        return f"No he encontrado reservas a nombre de {nombre}. ¿Puedes repetirlo o decirme el código?"
-                    elif len(reservas) == 1:
-                        self.reserva_mc = reservas[0]
-                        return self._iniciar_flujo_mc()
-                    else:
-                        self.reservas_candidatas_mc = reservas
-                        self.estado = "PIDIENDO_FECHA_HORA_MC"
-                        return f"Veo que hay {len(reservas)} reservas a nombre de {nombre}. ¿Para qué día o hora era?"
-                return "Por favor, indícame el código de confirmación o el nombre de la reserva."
-
-        elif self.estado == "PIDIENDO_FECHA_HORA_MC":
-            old_fecha = self.datos["fecha"]
-            old_hora = self.datos["hora"]
-            self._extraer_fecha_regex(msg_lower, None)
-            self._extraer_hora_regex(msg_lower, None)
-            fecha_buscada = self.servicio.normalizar_fecha(self.datos["fecha"]) if self.datos["fecha"] != old_fecha else None
-            hora_buscada = self.datos["hora"] if self.datos["hora"] != old_hora else None
-            
-            self.datos["fecha"] = old_fecha
-            self.datos["hora"] = old_hora
-
-            coincidencias = []
-            for r in self.reservas_candidatas_mc:
-                if fecha_buscada and r["fecha"] != fecha_buscada: continue
-                if hora_buscada and r["hora"] != hora_buscada: continue
-                coincidencias.append(r)
-            
-            if len(coincidencias) == 1:
-                self.reserva_mc = coincidencias[0]
-                return self._iniciar_flujo_mc()
-            elif len(coincidencias) > 1:
-                return "Aún hay varias reservas que coinciden. ¿Puedes ser más específico con el día y la hora?"
-            else:
-                return "No he encontrado ninguna reserva que coincida con esos datos. ¿Puedes repetirme para qué día y hora era?"
-
-        elif self.estado == "CONFIRMANDO_CANCELACION":
-            if any(p in msg_lower for p in ["si", "sí", "vale", "ok", "confirmar", "perfecto", "claro"]):
-                exito = self.servicio.db.cancelar_reserva(self.reserva_mc["id"])
-                if exito:
-                    self.reset()
-                    return "Tu reserva ha sido cancelada correctamente. ¡Esperamos verte en otra ocasión!"
-                else:
-                    return "Ha habido un problema al cancelar tu reserva. Por favor, inténtalo más tarde."
-            elif any(p in msg_lower for p in ["no", "espera", "cancelar", "equivocado"]):
-                self.reset()
-                return "De acuerdo, no cancelaremos la reserva. ¿En qué más puedo ayudarte?"
-            return "¿Confirmas que deseas cancelar la reserva? (Sí/No)"
-
-        elif self.estado == "RECOPILANDO_DATOS_MODIFICACION":
-            old_datos = self.datos.copy()
-            self.datos = {"fecha": None, "hora": None, "personas": None, "nombre": None, "telefono": None}
-            self.extraer_datos(mensaje, "RECOPILANDO_DATOS_MODIFICACION")
-            
-            if self.datos["fecha"]: self.nuevos_datos_mc["fecha"] = self.datos["fecha"]
-            if self.datos["hora"]: self.nuevos_datos_mc["hora"] = self.datos["hora"]
-            if self.datos["personas"]: self.nuevos_datos_mc["personas"] = self.datos["personas"]
-            
-            self.datos = old_datos
-
-            f_actual = self.nuevos_datos_mc["fecha"] or datetime.strptime(self.reserva_mc['fecha'], "%Y-%m-%d").strftime("%d/%m/%Y")
-            h_actual = self.nuevos_datos_mc["hora"] or self.reserva_mc["hora"]
-            p_actual = self.nuevos_datos_mc["personas"] or self.reserva_mc["personas"]
-
-            if not self.nuevos_datos_mc["fecha"] and not self.nuevos_datos_mc["hora"] and not self.nuevos_datos_mc["personas"]:
-                return "¿Qué deseas cambiar? (Día, hora o número de personas)"
-
-            if not self.es_fecha_valida(f_actual):
-                self.nuevos_datos_mc["fecha"] = None
-                return "Ese día estamos cerrados. ¿Para qué otro día lo cambiamos?"
-            if not self.es_hora_en_horario_cocina(h_actual):
-                self.nuevos_datos_mc["hora"] = None
-                return "Esa hora está fuera del horario de cocina (13:00-15:30, 20:30-23:00). ¿A qué otra hora?"
-
-            self.estado = "REVISANDO_DISPONIBILIDAD_MODIFICACION"
-            return self._procesar_estados_mc("comprobar")
-
-        elif self.estado == "REVISANDO_DISPONIBILIDAD_MODIFICACION":
-            f_actual = self.nuevos_datos_mc["fecha"] or datetime.strptime(self.reserva_mc['fecha'], "%Y-%m-%d").strftime("%d/%m/%Y")
-            h_actual = self.nuevos_datos_mc["hora"] or self.reserva_mc["hora"]
-            p_actual = self.nuevos_datos_mc["personas"] or self.reserva_mc["personas"]
-            
-            f_iso = self.servicio.normalizar_fecha(f_actual)
-
-            mesas = self.servicio.db.encontrar_combinacion_mesas_disponibles(
-                f_iso, h_actual, p_actual, exclude_reserva_id=self.reserva_mc["id"]
-            )
-
-            if mesas:
-                nuevo_codigo = self._generar_codigo_confirmacion()
-                exito = self.servicio.db.preparar_modificacion_reserva(
-                    self.reserva_mc["id"], f_iso, h_actual, p_actual, nuevo_codigo
-                )
-                if exito:
-                    self.datos["codigo_confirmacion"] = nuevo_codigo
-                    self.reserva_mc["codigo_confirmacion"] = nuevo_codigo
-                    self.estado = "ESPERANDO_CODIGO_MODIFICACION"
-                    return f"Perfecto, hay disponibilidad. He modificado tu reserva para el {f_actual} a las {h_actual} para {p_actual} personas. El nuevo código de confirmación es {nuevo_codigo}. Por favor, dime el código para confirmarla definitivamente."
-                else:
-                    self.reset()
-                    return "Ha ocurrido un error al modificar la reserva. Por favor inténtalo más tarde."
-            else:
-                self.estado = "RECOPILANDO_DATOS_MODIFICACION"
-                self.nuevos_datos_mc["hora"] = None
-                return f"Lo siento, no hay disponibilidad para el {f_actual} a las {h_actual}. ¿Te vendría bien otra hora?"
-
-        elif self.estado == "ESPERANDO_CODIGO_MODIFICACION":
-            codigo = self._extraer_codigo_4_digitos(mensaje)
-            if codigo:
-                resultado = self.servicio.db.confirmar_reserva_pendiente(codigo)
-                if resultado.get("ok"):
-                    self.reset()
-                    return f"Modificación confirmada con éxito. Te esperamos el {datetime.strptime(resultado['fecha'], '%Y-%m-%d').strftime('%d/%m/%Y')} a las {resultado['hora']}."
-                else:
-                    return f"El código no es correcto o hubo un problema. Por favor, dime el código {self.reserva_mc['codigo_confirmacion']} para confirmar."
-            else:
-                return f"Por favor, dime el código {self.reserva_mc['codigo_confirmacion']} para confirmar la modificación."
-
-        return None
 
     def _generar_codigo_confirmacion(self, longitud=4):
         return "".join(secrets.choice(string.digits) for _ in range(longitud))
@@ -1052,7 +878,6 @@ Mensaje del cliente:
 
         patrones = [
             r"\bme llamo\s+([A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50})\b",
-            r"\bmi nombre es\s+([A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50})\b",
             r"\bsoy\s+([A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50})\b",
             r"\ba nombre de\s+([A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50})\b",
             r"\bnombre\s*[:\-]?\s*([A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,50})\b"

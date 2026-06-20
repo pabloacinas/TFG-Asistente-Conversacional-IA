@@ -46,7 +46,7 @@ def _hablar_respuesta(stream_chunks, reproductor, cancel_event):
     sintetizar_streaming(frases, reproductor, cancel_event=cancel_event)
 
 
-def iniciar_bucle_voz(cliente, coleccion, markdown_horario, procesar_turno):
+def iniciar_bucle_voz(cliente, carta_md, markdown_horario, procesar_turno):
     """Bucle principal de modo voz."""
     print("\n" + "=" * 60)
     print("  ASISTENTE ALCHI — MODO VOZ  ")
@@ -85,7 +85,7 @@ def iniciar_bucle_voz(cliente, coleccion, markdown_horario, procesar_turno):
                 reproductor.reanudar()
 
                 print("Alchi: ", end="", flush=True)
-                stream = procesar_turno(msg, cliente, coleccion, markdown_horario, gestor, historial)
+                stream = procesar_turno(msg, cliente, carta_md, markdown_horario, gestor, historial)
                 try:
                     _hablar_respuesta(stream, reproductor, cancel_event)
                 except Exception as e:
