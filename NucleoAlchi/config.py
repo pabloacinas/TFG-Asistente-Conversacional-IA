@@ -53,10 +53,10 @@ class Config:
     CAPACIDAD_MAX_POR_HORA = 20  # Aforo máximo del restaurante por turno
     
     # Archivos
-    ARCHIVO_PDF = "Carta de Alchi Burger.pdf"
-    ARCHIVO_CARTA_MD = "carta_cache.md"  # Archivo de caché para el texto extraído
-    ARCHIVO_HORARIO_PDF = "horario.pdf"
-    ARCHIVO_HORARIO_MD = "horario_cache.md"
+    ARCHIVO_PDF = os.path.join("Recursos", "Carta de Alchi Burger.pdf")
+    ARCHIVO_CARTA_MD = os.path.join("Recursos", "carta_cache.md")  # Archivo de caché para el texto extraído
+    ARCHIVO_HORARIO_PDF = os.path.join("Recursos", "horario.pdf")
+    ARCHIVO_HORARIO_MD = os.path.join("Recursos", "horario_cache.md")
 
 
     # =========================

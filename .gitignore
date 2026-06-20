@@ -7,25 +7,25 @@ vector_db/
 database/
 NucleoAlchi/database/alchi_restaurante.db
 
-Vídeo_Demo_ConversacionBot.mp4
+Recursos/Vídeo_Demo_ConversacionBot.mp4
 prueba_gemini.py
 prueba_gemini2
 
 # Artefactos generados de LaTeX / memoria
-MemoriaLATEX.zip
-MemoriaLATEX
-MemoriaLATEX/*.aux
-MemoriaLATEX/*.fdb_latexmk
-MemoriaLATEX/*.fls
-MemoriaLATEX/*.lof
-MemoriaLATEX/*.log
-MemoriaLATEX/*.lot
-MemoriaLATEX/*.out
-MemoriaLATEX/*.pdf
-MemoriaLATEX/*.synctex.gz
-MemoriaLATEX/*.tcp
-MemoriaLATEX/*.toc
-MemoriaLATEX/*.tps
+Recursos/MemoriaLATEX.zip
+Recursos/MemoriaLATEX
+Recursos/MemoriaLATEX/*.aux
+Recursos/MemoriaLATEX/*.fdb_latexmk
+Recursos/MemoriaLATEX/*.fls
+Recursos/MemoriaLATEX/*.lof
+Recursos/MemoriaLATEX/*.log
+Recursos/MemoriaLATEX/*.lot
+Recursos/MemoriaLATEX/*.out
+Recursos/MemoriaLATEX/*.pdf
+Recursos/MemoriaLATEX/*.synctex.gz
+Recursos/MemoriaLATEX/*.tcp
+Recursos/MemoriaLATEX/*.toc
+Recursos/MemoriaLATEX/*.tps
 
 # Secretos locales
 private_secrets.py
