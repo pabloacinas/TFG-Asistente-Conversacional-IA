@@ -11,22 +11,8 @@ Recursos/Vídeo_Demo_ConversacionBot.mp4
 prueba_gemini.py
 prueba_gemini2
 
-# Artefactos generados de LaTeX / memoria
-Recursos/MemoriaLATEX.zip
-Recursos/MemoriaLATEX
-Recursos/MemoriaLATEX/*.aux
-Recursos/MemoriaLATEX/*.fdb_latexmk
-Recursos/MemoriaLATEX/*.fls
-Recursos/MemoriaLATEX/*.lof
-Recursos/MemoriaLATEX/*.log
-Recursos/MemoriaLATEX/*.lot
-Recursos/MemoriaLATEX/*.out
-Recursos/MemoriaLATEX/*.pdf
-Recursos/MemoriaLATEX/*.synctex.gz
-Recursos/MemoriaLATEX/*.tcp
-Recursos/MemoriaLATEX/*.toc
-Recursos/MemoriaLATEX/*.tps
 
 # Secretos locales
 private_secrets.py
 TFG-Asistente(tokenLMStudio).txt
+analisis_indice_tfg.md
