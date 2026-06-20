@@ -1,0 +1,145 @@
+\chapter{\textbf{Diseño de la arquitectura}}
+\label{ch:Arquitectura}
+\thispagestyle{fancy}
+
+\section{Visión general de la arquitectura (Diagrama de bloques)}
+\label{sec:vision_general_arquitectura}
+
+El sistema se ha diseñado con una arquitectura modular que permite operar en tres modos distintos sin modificar el núcleo funcional: modo texto por terminal, modo centralita web simulada y modo telefonía real. Los tres modos comparten el mismo motor conversacional, el mismo gestor de reservas y la misma base de datos, diferenciándose únicamente en la interfaz de entrada/salida.
+
+\figuraPlaceholder{Diagrama general de bloques pendiente de inserción}{fig:bloques_placeholder}
+
+Esta separación permite que la lógica de negocio se desarrolle y pruebe de forma aislada, y que los canales de comunicación se añadan o sustituyan sin afectar al comportamiento del asistente. El modo texto sirve como herramienta de desarrollo rápido, la centralita web permite pruebas funcionales completas en un entorno controlado, y el servidor de telefonía demuestra la viabilidad del sistema en un escenario real.
+
+\section{Arquitectura modular del proyecto}
+\label{sec:arquitectura_modular}
+
+La organización del código refleja directamente la separación de responsabilidades descrita. El repositorio se estructura en tres paquetes principales, más un directorio de pruebas y otro de recursos:
+
+\subsection{Núcleo funcional compartido (NucleoAlchi)}
+\label{subsec:nucleo_alchi}
+
+Este paquete contiene toda la lógica transversal del sistema, consumida por ambos servidores y por el modo terminal. Sus componentes son:
+
+\begin{itemize}
+    \item \textbf{Configuración centralizada} (\texttt{config.py}): agrupa todos los parámetros del sistema (modelos, voces, puertos, rutas, credenciales) en una clase única.
+    \item \textbf{Proveedor de LLM} (\texttt{llm\_provider.py}): abstrae la conexión con Google Cloud Vertex AI.
+    \item \textbf{Chat con el LLM} (\texttt{llm\_chat.py}): funciones para generar respuestas en modo síncrono y en streaming.
+    \item \textbf{Motor de reservas} (\texttt{reservas.py}): implementa el \texttt{GestorReservas} con la máquina de estados completa.
+    \item \textbf{Gestor de base de datos} (\texttt{db\_manager.py}): encapsula las operaciones SQLite con asignación dinámica de mesas.
+    \item \textbf{Canal SMS} (\texttt{sms.py}): envío asíncrono de SMS de confirmación mediante Twilio.
+    \item \textbf{Módulo de voz} (\texttt{voice/}): submódulo con los componentes de STT, TTS, particionador de frases, bucle conversacional y E/S de audio local.
+    \item \textbf{Punto de entrada} (\texttt{main.py}): orquesta la carga de documentos, la inicialización del cliente LLM y el arranque del modo seleccionado.
+\end{itemize}
+
+\subsection{Servidor de centralita simulada (ServidorCentralita)}
+\label{subsec:servidor_centralita}
+
+Implementa un servidor HTTP local con un panel web para simular llamadas. Consume el núcleo para procesar los mensajes del usuario y devolver respuestas en tiempo real mediante SSE. Incluye una interfaz web completa (HTML, CSS, JavaScript) que permite crear, gestionar y monitorizar múltiples llamadas simultáneas.
+
+\subsection{Servidor de telefonía real (ServidorTelefonía)}
+\label{subsec:servidor_telefonia}
+
+Implementa un servidor FastAPI que se integra con Twilio Voice para recibir llamadas telefónicas reales. Expone un webhook HTTP para la señalización y un WebSocket para el intercambio de audio bidireccional en tiempo real. Incluye la adaptación del formato de audio entre la telefonía (mu-law, 8~kHz) y los servicios cloud (PCM lineal).
+
+\section{Componentes del sistema}
+\label{sec:componentes_sistema}
+
+A nivel funcional, el sistema se compone de tres grandes bloques que cooperan para atender una interacción del usuario.
+
+\subsection{Proveedor de Telefonía y Pasarela de Medios}
+\label{subsec:proveedor_telefonia}
+
+En el modo de telefonía real, Twilio actúa como pasarela entre la red telefónica pública y el servidor del proyecto. Twilio se encarga de gestionar la señalización de la llamada (establecimiento, desconexión), convertir el audio de la red telefónica al formato WebSocket, y reenviar los frames de audio en ambas direcciones. El servidor no necesita implementar protocolos de telefonía (SIP, RTP) porque Twilio abstrae toda esa complejidad y expone una interfaz basada en webhooks HTTP y WebSocket.
+
+\subsection{Orquestador de la Conversación (Backend)}
+\label{subsec:orquestador_backend}
+
+El orquestador es el componente que recibe cada turno del usuario, decide cómo procesarlo y produce la respuesta. Implementa la función \texttt{procesar\_turno}, que actúa como punto de decisión:
+
+\begin{itemize}
+    \item Si hay un flujo de reserva activo o se detecta intención de reservar, el mensaje se delega al \texttt{GestorReservas}.
+    \item En caso contrario, se construye el prompt con el contexto del restaurante y el historial, y se envía al LLM para obtener una respuesta general.
+\end{itemize}
+
+El resultado siempre es un generador de chunks de texto, que permite procesar la respuesta de forma progresiva independientemente de si proviene de la máquina de estados o del LLM.
+
+\subsection{Servicios de IA (Pipeline STT -> LLM -> TTS)}
+\label{subsec:servicios_ia}
+
+Los tres servicios de inteligencia artificial que componen el pipeline se ejecutan en Google Cloud:
+
+\begin{itemize}
+    \item \textbf{STT (Speech-to-Text)}: Cloud Speech v2 con reconocimiento en streaming. Produce resultados parciales en tiempo real y un resultado final cuando detecta fin de turno.
+    \item \textbf{LLM (Modelo de Lenguaje)}: Gemini 2.5 Flash a través de Vertex AI. Genera respuestas en streaming mediante la API de \texttt{google-genai}.
+    \item \textbf{TTS (Text-to-Speech)}: Cloud TTS con voz Chirp3-HD (streaming) para la interacción local y Neural2 para la telefonía. El modo streaming permite comenzar la reproducción antes de que se sintetice la frase completa.
+\end{itemize}
+
+\figuraPlaceholder{Esquema del pipeline STT, LLM y TTS pendiente de inserción}{fig:pipeline_placeholder}
+
+\section{Modelo de hilos y concurrencia}
+\label{sec:modelo_hilos}
+
+La concurrencia es un aspecto fundamental del diseño, ya que el sistema debe ser capaz de atender múltiples llamadas simultáneamente. El modelo adoptado se basa en un hilo dedicado por llamada con comunicación por colas:
+
+\begin{itemize}
+    \item Al recibir una nueva llamada (simulada o real), se crea una instancia de \texttt{LlamadaThread} (o \texttt{LlamadaTelefonica}) que se ejecuta como hilo independiente.
+    \item Cada hilo posee su propia instancia del gestor de reservas, su propio historial de conversación y sus propias colas de entrada/salida. No comparte estado mutable con otros hilos.
+    \item La comunicación con el hilo que atiende las peticiones HTTP o el WebSocket se realiza exclusivamente a través de colas \texttt{queue.Queue}, que son \textit{thread-safe} por diseño en Python.
+    \item Las llamadas activas se registran en un diccionario global protegido por un \texttt{threading.Lock} para evitar condiciones de carrera.
+\end{itemize}
+
+Este modelo es sencillo, predecible y adecuado para la escala del proyecto. Evita la complejidad de los frameworks de actores o la programación asíncrona pura, manteniendo la legibilidad del código.
+
+\figuraPlaceholder{Diagrama del modelo de hilos y colas de comunicación pendiente de inserción}{fig:hilos_placeholder}
+
+\section{Diseño del Modelo de Datos (Diagrama Entidad-Relación)}
+\label{sec:modelo_datos}
+
+El modelo de datos se ha diseñado con el objetivo de soportar la asignación dinámica de mesas a reservas, permitiendo que un grupo grande pueda sentarse en varias mesas contiguas.
+
+\figuraPlaceholder{Diagrama entidad-relación pendiente de inserción}{fig:er_placeholder}
+
+\subsection{Entidades: Reservas, Mesas y Asignación de mesas}
+\label{subsec:entidades_modelo}
+
+El esquema relacional consta de tres tablas:
+
+\begin{itemize}
+    \item \textbf{reservas}: contiene los datos de cada reserva (fecha, hora, personas, nombre, teléfono), su estado (pendiente, confirmada, cancelada), el código de confirmación y las marcas temporales de creación y confirmación.
+    \item \textbf{mesas}: define cada mesa física del restaurante con su capacidad máxima.
+    \item \textbf{reservas\_mesas}: tabla de relación N:M que vincula reservas con mesas, incluyendo la fecha y la franja horaria (hora de inicio y hora de fin). Esto permite que la misma mesa pueda estar asignada a distintas reservas en distintas franjas horarias del mismo día.
+\end{itemize}
+
+Los índices definidos optimizan las consultas más frecuentes: búsqueda de reservas por fecha y hora, y verificación de disponibilidad de mesas por franja horaria.
+
+\section{Diseño de la API y Contratos de Interfaz}
+\label{sec:api_contratos}
+
+La centralita web expone una API REST sobre HTTP que permite al frontend gestionar las llamadas simuladas. Los endpoints principales son:
+
+\begin{itemize}
+    \item \texttt{GET /api/llamadas}: lista todas las llamadas activas con su estado, datos de reserva y metadatos del hilo.
+    \item \texttt{POST /api/llamadas}: crea una nueva llamada simulada con los datos del cliente (teléfono y nombre).
+    \item \texttt{POST /api/llamadas/<id>/mensaje}: envía un mensaje a una llamada activa y devuelve la respuesta en streaming SSE.
+    \item \texttt{POST /api/llamadas/<id>/colgar}: termina una llamada activa y libera el hilo asociado.
+    \item \texttt{GET /api/logs}: devuelve los últimos eventos del servidor para monitorización.
+    \item \texttt{GET /api/config}: devuelve la configuración de voz del servidor.
+    \item \texttt{GET /api/tts}: genera audio TTS con Google Cloud para reproducción en la interfaz web.
+\end{itemize}
+
+El servidor de telefonía, por su parte, expone solo dos endpoints:
+
+\begin{itemize}
+    \item \texttt{POST /voice}: webhook que Twilio invoca al recibir una llamada. Responde con TwiML.
+    \item \texttt{WebSocket /media}: canal de audio bidireccional para Twilio Media Streams.
+\end{itemize}
+
+\section{Diseño del Flujo Conversacional y Máquina de Estados}
+\label{sec:flujo_conversacional}
+
+El flujo conversacional combina dos estrategias complementarias: respuestas generativas del LLM para consultas abiertas (sobre la carta, el horario, el restaurante) y respuestas deterministas de la máquina de estados para las operaciones de reserva.
+
+\figuraPlaceholder{Máquina de estados conversacional pendiente de inserción}{fig:maquina_estados_placeholder}
+
+La detección de intención se realiza mediante búsqueda de palabras clave en el mensaje del usuario (``reservar'', ``mesa'', ``hay sitio'', ``cancelar'', ``modificar''). Una vez activado el flujo de reserva, el gestor toma el control completo de la conversación hasta que la operación se completa o se abandona. Esto garantiza que las operaciones críticas (como la creación de una reserva) no se vean afectadas por posibles alucinaciones del modelo de lenguaje.

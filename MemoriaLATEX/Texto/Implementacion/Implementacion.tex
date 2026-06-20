@@ -1,0 +1,212 @@
+\chapter{\textbf{Implementación}}
+\label{ch:Implementacion}
+\thispagestyle{fancy}
+
+\section{Procesamiento de documentos y alimentación de contexto}
+\label{sec:procesamiento_documentos}
+
+Para que el asistente pueda responder preguntas sobre la carta y el horario del restaurante, es necesario que el sistema extraiga la información contenida en los documentos del negocio y la incorpore al contexto del modelo de lenguaje. En lugar de requerir que el restaurante mantenga manualmente un fichero de texto con esta información, el sistema procesa directamente los archivos PDF originales.
+
+Se emplea la librería \textbf{Marker}, una herramienta de extracción de texto de PDF basada en modelos de visión por computador, que convierte los documentos a formato Markdown conservando la estructura original (tablas, secciones, listas de precios). El resultado se almacena en un fichero de caché (\texttt{.md}) que se regenera automáticamente solo cuando el PDF de origen ha sido modificado. De esta forma, el procesamiento costoso (carga de modelos de visión) solo se ejecuta cuando es estrictamente necesario.
+
+El contenido extraído se inyecta íntegramente en el \textit{system prompt} del modelo de lenguaje, junto con las reglas de comportamiento del asistente. Esta estrategia, conocida como \textit{context stuffing}, fue elegida frente a un sistema RAG con base de datos vectorial por tres razones prácticas: (1) el volumen de datos del restaurante es reducido (carta y horario), (2) se evita la complejidad de mantener embeddings y un motor de búsqueda vectorial, y (3) los modelos actuales como Gemini 2.5 Flash disponen de ventanas de contexto suficientemente amplias para contener toda la información necesaria.
+
+\section{Motor de reservas y máquina de estados}
+\label{sec:motor_reservas}
+
+El componente central de la lógica de negocio es el \texttt{GestorReservas}, una clase que implementa una máquina de estados finitos para gestionar el ciclo de vida completo de una reserva: creación, comprobación de disponibilidad, confirmación por código SMS, modificación y cancelación.
+
+El diseño de este módulo se fundamenta en el principio de separación entre el flujo conversacional (gestionado por el LLM) y las operaciones de negocio (gestionadas por código determinista). Cuando el sistema detecta que el usuario tiene intención de reservar, el control pasa del LLM al gestor de reservas, que guía la conversación a través de estados predefinidos y ejecuta las validaciones y operaciones necesarias directamente sobre la base de datos.
+
+\subsection{Extracción de datos: regex y LLM como fallback}
+\label{subsec:extraccion_datos}
+
+La extracción de datos de reserva (fecha, hora, número de personas, nombre y teléfono) se realiza en dos pasadas complementarias:
+
+\begin{enumerate}
+    \item \textbf{Primera pasada con expresiones regulares}: un conjunto de patrones predefinidos intenta detectar fechas (``mañana'', ``el viernes'', ``15 de junio'', ``próximo sábado''), horas (``a las 9'', ``21:30''), número de personas, teléfonos y nombres directamente en el texto del usuario. Esta pasada es rápida y determinista.
+    
+    \item \textbf{Segunda pasada con el LLM como extractor}: si tras la primera pasada faltan campos obligatorios y hay un flujo de reserva activo, el sistema envía el mensaje del usuario a un prompt especializado que devuelve los datos en formato JSON. El LLM actúa aquí como un extractor inteligente capaz de interpretar expresiones ambiguas (``para cuatro'', ``este finde'') que los patrones fijos no cubren.
+\end{enumerate}
+
+Este diseño híbrido ofrece robustez (los casos comunes se resuelven sin llamada al LLM) y flexibilidad (los casos ambiguos se delegan al modelo).
+
+\subsection{Flujo de estados del gestor de reservas}
+\label{subsec:flujo_estados_reservas}
+
+El gestor opera como una máquina de estados con las siguientes transiciones principales:
+
+\begin{itemize}
+    \item \textbf{INACTIVO}: estado inicial. El sistema monitoriza los mensajes en busca de intención de reservar, modificar o cancelar.
+    \item \textbf{PIDIENDO\_FECHA}, \textbf{PIDIENDO\_HORA}, \textbf{PIDIENDO\_PERSONAS}: estados de recopilación secuencial de datos. El sistema solicita al usuario los campos que faltan, uno a uno.
+    \item \textbf{COMPROBANDO\_DISPONIBILIDAD}: con fecha, hora y número de personas completos, el sistema consulta la base de datos para verificar que existe una combinación de mesas disponible.
+    \item \textbf{PIDIENDO\_NOMBRE}, \textbf{PIDIENDO\_TELEFONO}: una vez confirmada la disponibilidad, se solicitan los datos personales.
+    \item \textbf{LISTO}: todos los datos están completos. Se crea una reserva en estado \textit{pendiente} y se envía un SMS con el código de confirmación.
+    \item \textbf{ESPERANDO\_CODIGO}: el sistema espera que el usuario dicte el código de 4 dígitos recibido por SMS para confirmar la reserva y asignar las mesas.
+\end{itemize}
+
+Además, se implementan flujos paralelos para la modificación y cancelación de reservas existentes, que permiten localizar la reserva por código o por nombre del cliente y gestionar los cambios con su propio ciclo de confirmación por SMS.
+
+\figuraPlaceholder{Diagrama de estados del GestorReservas pendiente de inserción}{fig:estados_gestor_placeholder}
+
+Cada transición incluye validaciones de negocio integradas: se comprueba que el restaurante esté abierto el día solicitado (cerrado lunes y martes), que la hora caiga dentro del horario de cocina (comidas de 13:00 a 15:30, cenas de 20:30 a 23:00), y que la fecha solicitada no sea pasada.
+
+\subsection{Sistema de confirmación por código SMS}
+\label{subsec:confirmacion_sms_impl}
+
+Para reforzar la seguridad y evitar reservas no autorizadas, se implementó un flujo de doble factor basado en SMS:
+
+\begin{enumerate}
+    \item Cuando todos los datos de la reserva están completos, el sistema la registra en estado \textit{pendiente} en la base de datos, sin asignar mesas todavía.
+    \item Se genera un código numérico aleatorio de 4 dígitos y se envía por SMS al teléfono del cliente mediante la API de Twilio.
+    \item El envío del SMS se ejecuta en un hilo independiente (\texttt{threading.Thread} con \texttt{daemon=True}) para no bloquear el flujo de la conversación.
+    \item El sistema pide al usuario que dicte el código recibido. Solo cuando el código coincide, la reserva pasa a estado \textit{confirmada} y se asignan las mesas disponibles.
+    \item En caso de que, entre la creación de la reserva pendiente y la confirmación, las mesas dejen de estar disponibles, el sistema lo detecta y ofrece alternativas.
+\end{enumerate}
+
+Una decisión de diseño importante es que el código nunca se verbaliza durante la llamada; el cliente debe leerlo del SMS y dictarlo. Esto previene que un tercero que escuche la conversación pueda confirmar una reserva fraudulenta.
+
+\subsection{Modificación y cancelación de reservas}
+\label{subsec:modificacion_cancelacion}
+
+Los flujos de modificación y cancelación comparten una fase inicial de identificación de la reserva, que acepta tanto el código de confirmación como el nombre del titular. Si existen varias reservas a nombre del mismo cliente, el sistema solicita desambiguación por fecha u hora.
+
+\begin{itemize}
+    \item \textbf{Cancelación}: tras localizar la reserva, se pide confirmación explícita al usuario. Al cancelar, se actualiza el estado a \textit{cancelada} y se liberan las mesas asignadas.
+    \item \textbf{Modificación}: el usuario indica qué datos desea cambiar (fecha, hora o número de personas). El sistema comprueba disponibilidad con los nuevos datos, genera un nuevo código de confirmación, envía un nuevo SMS y espera la confirmación antes de aplicar los cambios.
+\end{itemize}
+
+\section{Integración del Pipeline de IA}
+\label{sec:integracion_pipeline_ia}
+
+El pipeline de inteligencia artificial transforma la entrada del usuario (texto o voz) en una respuesta del asistente siguiendo la cadena: entrada de audio $\rightarrow$ transcripción (STT) $\rightarrow$ procesamiento (LLM o máquina de estados) $\rightarrow$ síntesis de voz (TTS) $\rightarrow$ salida de audio.
+
+\figuraPlaceholder{Integración del pipeline de IA pendiente de inserción}{fig:integracion_pipeline_placeholder}
+
+El procesamiento se bifurca en función de la intención detectada: si el mensaje contiene palabras clave relacionadas con reservas o si hay un flujo de reserva activo, el control se delega al \texttt{GestorReservas}; en caso contrario, se construye un prompt con el contexto del restaurante y el historial de la conversación, y se envía al modelo de lenguaje para obtener una respuesta general.
+
+\subsection{Generación de respuestas con streaming}
+\label{subsec:streaming_llm}
+
+Las respuestas del modelo de lenguaje se generan mediante \textit{streaming}: en lugar de esperar a que el modelo produzca la respuesta completa, se procesan los fragmentos (\textit{chunks}) de texto a medida que se generan. Esto permite que el usuario comience a escuchar la respuesta mientras el modelo sigue generando el resto, reduciendo significativamente la latencia percibida.
+
+En el caso de la centralita web, los chunks se transmiten al navegador mediante Server-Sent Events (SSE). En el caso de la telefonía real, los chunks se agrupan en frases completas antes de enviarlos al sintetizador de voz.
+
+\subsection{Optimización de latencia (Sentence Splitter y TTS por frases)}
+\label{subsec:optimizacion_latencia}
+
+Para los modos de voz (tanto local como telefonía), se implementó un componente intermedio denominado \textit{sentence splitter} que actúa como buffer inteligente entre el streaming del LLM y el sintetizador TTS:
+
+\begin{itemize}
+    \item Acumula los tokens recibidos del LLM hasta detectar un fin de frase (puntuación final seguida de espacio, o salto de línea).
+    \item En cuanto tiene una frase completa, la envía al TTS para comenzar la síntesis inmediatamente, sin esperar al resto de la respuesta.
+    \item Si el buffer supera un tamaño configurable sin puntuación, fuerza un corte por el último espacio disponible para evitar pausas largas.
+\end{itemize}
+
+Esta optimización permite que la primera frase se comience a reproducir mientras el LLM aún está generando las siguientes, logrando una experiencia conversacional más fluida y natural.
+
+\section{Centralita web simulada (ServidorCentralita)}
+\label{sec:centralita_web}
+
+La centralita web es un servidor HTTP local que permite simular llamadas entrantes desde un panel de administración en el navegador. Su propósito principal es facilitar la depuración y las pruebas funcionales sin necesidad de infraestructura de telefonía externa.
+
+\subsection{Servidor HTTP multi-hilo y gestión de llamadas concurrentes}
+\label{subsec:servidor_multihilo}
+
+El servidor se implementa sobre \texttt{http.server.ThreadingHTTPServer}, la clase estándar de Python que despacha cada petición HTTP en un hilo independiente. Sobre esta base, el sistema crea un hilo adicional (\texttt{LlamadaThread}) por cada llamada simulada:
+
+\begin{itemize}
+    \item Cada hilo posee su propia instancia de \texttt{GestorReservas} y su propio historial de conversación, garantizando aislamiento completo entre llamadas concurrentes.
+    \item La comunicación entre el hilo HTTP (que recibe las peticiones del navegador) y el hilo de la llamada se realiza mediante dos colas (\texttt{queue.Queue}): una de entrada (mensajes del usuario) y una de salida (respuestas del asistente).
+    \item Un mecanismo de \textit{timeout} por inactividad (5 minutos) termina automáticamente las llamadas abandonadas para liberar recursos.
+\end{itemize}
+
+Las llamadas activas se almacenan en un diccionario protegido por un \textit{lock} (\texttt{threading.Lock}), que se limpia periódicamente eliminando las llamadas terminadas.
+
+\subsection{Streaming de respuestas con Server-Sent Events (SSE)}
+\label{subsec:sse_streaming}
+
+Cuando el frontend envía un mensaje, la respuesta del asistente se transmite en tiempo real al navegador mediante el protocolo Server-Sent Events (SSE). Este mecanismo permite que el texto aparezca progresivamente en la interfaz, carácter a carácter, emulando una conversación en directo.
+
+El endpoint de mensajes mantiene la conexión HTTP abierta mientras el hilo de la llamada procesa el turno. Cada chunk generado por el LLM se encola en la cola de salida y el handler HTTP lo transmite al cliente en formato SSE. Se envían pings periódicos para mantener la conexión viva y detectar desconexiones del cliente.
+
+\subsection{Interfaz web de administración}
+\label{subsec:interfaz_web}
+
+El panel web ofrece una interfaz visual para simular y monitorizar llamadas. Incluye la capacidad de iniciar nuevas llamadas proporcionando nombre y teléfono del cliente, enviar mensajes y recibir respuestas en tiempo real, visualizar el estado del gestor de reservas de cada llamada (estado, datos capturados, última acción), monitorizar los logs del servidor en directo, y colgar llamadas activas. La interfaz se implementa con HTML, CSS y JavaScript sin dependencias externas.
+
+\section{Servidor de telefonía real (ServidorTelefonía)}
+\label{sec:servidor_telefonia_impl}
+
+El servidor de telefonía permite recibir llamadas reales desde un teléfono móvil y conversar con el asistente por voz. Se implementa como una aplicación FastAPI independiente que se comunica con Twilio a través de dos endpoints.
+
+\subsection{Configuración del servicio de telefonía y Webhooks}
+\label{sec:config_telefonia_webhooks}
+
+El flujo de una llamada real comienza cuando el usuario marca el número de Twilio asignado al proyecto:
+
+\begin{enumerate}
+    \item Twilio invoca el endpoint \texttt{/voice} del servidor mediante un webhook HTTP.
+    \item El servidor responde con un documento TwiML que instruye a Twilio para abrir un canal de audio bidireccional por WebSocket.
+    \item Twilio abre una conexión WebSocket al endpoint \texttt{/media} del servidor.
+    \item A partir de ese momento, el audio fluye en ambos sentidos en tiempo real.
+\end{enumerate}
+
+Para que Twilio pueda alcanzar al servidor local, se utiliza \textbf{ngrok} como túnel inverso que expone el puerto local (5050) en una URL pública temporal con soporte HTTPS y WSS.
+
+\subsection{Canal de audio bidireccional con Twilio Media Streams}
+\label{subsec:media_streams}
+
+El WebSocket \texttt{/media} gestiona tres tipos de eventos de Twilio:
+
+\begin{itemize}
+    \item \textbf{start}: indica el inicio del stream. Se extrae el identificador del stream (\texttt{streamSid}) y se crea un hilo \texttt{LlamadaTelefonica} para gestionar la llamada.
+    \item \textbf{media}: contiene un frame de audio codificado en base64. El payload se decodifica y se encola en el stream de entrada para el motor STT.
+    \item \textbf{stop}: Twilio señala el fin de la llamada. Se cierra el hilo y se liberan los recursos.
+\end{itemize}
+
+En paralelo, una tarea asíncrona (\texttt{enviar\_audio}) lee los frames de respuesta del hilo de la llamada y los envía a Twilio por el mismo WebSocket, aplicando un \textit{pacing} de 20~ms entre frames para respetar la cadencia de la telefonía.
+
+\subsection{Adaptación de audio para telefonía (mu-law, 8~kHz)}
+\label{subsec:adaptacion_audio}
+
+La telefonía opera con restricciones de formato distintas al audio local. Twilio Media Streams utiliza audio \textbf{mu-law (PCMU)} mono a \textbf{8 kHz}, mientras que el pipeline local trabaja con PCM lineal a 16/24 kHz.
+
+Para la entrada, se configura el motor STT de Google Cloud con codificación \texttt{MULAW} y frecuencia de muestreo de 8~kHz, reutilizando la misma función de transcripción que el micrófono local pero con parámetros diferentes.
+
+Para la salida, se sintetiza la voz con una voz Neural2 a 8~kHz en formato LINEAR16 y luego se convierte a mu-law usando la función \texttt{audioop.lin2ulaw} de la biblioteca estándar de Python. El resultado se trocea en frames de 160 bytes (20~ms a 8~kHz, 1 byte por muestra en mu-law) para enviarlos a Twilio.
+
+\section{Persistencia y conexión a Base de Datos}
+\label{sec:persistencia_bd}
+
+El sistema utiliza SQLite como motor de base de datos, adecuado para el escenario de demostración y baja concurrencia del proyecto. La gestión de la base de datos se centraliza en la clase \texttt{DBManager}, que se encarga de la inicialización del esquema, las migraciones incrementales y todas las operaciones CRUD.
+
+\subsection{Esquema relacional y asignación dinámica de mesas}
+\label{subsec:esquema_mesas}
+
+El esquema consta de tres tablas:
+
+\begin{itemize}
+    \item \textbf{reservas}: almacena los datos de cada reserva (fecha, hora, personas, nombre, teléfono, estado y código de confirmación).
+    \item \textbf{mesas}: define las mesas del restaurante con su capacidad.
+    \item \textbf{reservas\_mesas}: tabla de relación que asocia reservas con mesas físicas, incluyendo la franja horaria de ocupación.
+\end{itemize}
+
+La asignación de mesas se realiza de forma dinámica en el momento de la confirmación. El algoritmo evalúa todas las combinaciones posibles de mesas libres en la franja solicitada y selecciona la que minimiza el exceso de capacidad (y, a igualdad, el número de mesas utilizado). Esto permite asignar varias mesas pequeñas a un grupo grande cuando no hay una mesa individual suficiente.
+
+Si no existe ninguna combinación viable, el sistema busca automáticamente huecos alternativos en intervalos de 30 minutos y los ofrece al cliente.
+
+\section{Estrategias de System Prompting (Definición de personalidad y reglas)}
+\label{sec:system_prompting}
+
+El \textit{system prompt} define la personalidad, el estilo y las reglas de comportamiento del asistente. Se construye dinámicamente en cada turno, incorporando el contexto del menú y el horario del restaurante extraídos de los documentos PDF.
+
+Las principales directrices incluidas son:
+
+\begin{itemize}
+    \item \textbf{Identidad}: el asistente se presenta como ``Alchi'', maître de L'Alchimie.
+    \item \textbf{Estilo conversacional}: respuestas breves (1-2 frases), directas y sin relleno, optimizadas para una interacción telefónica natural.
+    \item \textbf{Restricciones de contenido}: el asistente solo puede utilizar la información proporcionada en el contexto y no debe inventar datos.
+    \item \textbf{Reglas de reserva}: se especifican las instrucciones sobre el flujo SMS (no verbalizar el código, pedir al cliente que espere el SMS, etc.).
+    \item \textbf{Reglas de horario}: el prompt diferencia entre horario de apertura del restaurante y horario de cocina, para que el asistente responda correctamente según el tipo de pregunta.
+\end{itemize}

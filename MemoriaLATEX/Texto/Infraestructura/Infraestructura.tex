@@ -1,0 +1,104 @@
+\chapter{\textbf{Tecnologías y Herramientas}}
+\label{ch:Tecnologias}
+\thispagestyle{fancy}
+
+\section{Selección del Stack Tecnológico}
+\label{sec:stack_tecnologico}
+
+La elección de tecnologías ha estado guiada por dos criterios principales: reutilizar servicios cloud de alta calidad para las tareas de inteligencia artificial (reconocimiento de voz, generación de lenguaje, síntesis de voz) y mantener la simplicidad del código backend utilizando Python y bibliotecas estándar siempre que sea posible. A continuación se describen las tecnologías utilizadas en cada capa del sistema.
+
+\subsection{Lenguaje y frameworks (Python, FastAPI, http.server)}
+\label{subsec:backend_stack}
+
+El proyecto está desarrollado íntegramente en \textbf{Python 3.11}. La elección de Python se justifica por su ecosistema maduro para inteligencia artificial, la disponibilidad de clientes oficiales de Google Cloud, y la facilidad para implementar prototipos funcionales con concurrencia basada en hilos.
+
+Se emplean dos frameworks web distintos para los dos servidores del proyecto:
+
+\begin{itemize}
+    \item \textbf{http.server} (biblioteca estándar): para la centralita web simulada. La clase \texttt{ThreadingHTTPServer} proporciona un servidor HTTP multi-hilo sin dependencias externas, suficiente para servir la API REST y los archivos estáticos del panel web.
+    \item \textbf{FastAPI} con \textbf{Uvicorn}: para el servidor de telefonía real. FastAPI se eligió por su soporte nativo de WebSockets (necesario para Twilio Media Streams) y su capacidad para combinar endpoints HTTP y WebSocket en la misma aplicación.
+\end{itemize}
+
+\subsection{Base de Datos (SQLite)}
+\label{subsec:base_datos_stack}
+
+La persistencia de reservas y asignaciones de mesas se gestiona con \textbf{SQLite}, un motor de base de datos relacional embebido que no requiere un servidor independiente. SQLite es adecuado para el escenario del proyecto (demostración y baja concurrencia) y simplifica significativamente el despliegue, ya que toda la base de datos se almacena en un único archivo.
+
+El acceso a la base de datos se realiza mediante el módulo \texttt{sqlite3} de la biblioteca estándar de Python, sin necesidad de ORM.
+
+\subsection{Proveedor de Telefonía y SMS (Twilio)}
+\label{subsec:twilio_stack}
+
+\textbf{Twilio} es una plataforma de comunicaciones en la nube que ofrece APIs programáticas para voz, SMS y otros canales. En este proyecto se utilizan tres servicios de Twilio:
+
+\begin{itemize}
+    \item \textbf{Twilio Voice}: permite recibir llamadas telefónicas en un número virtual. Al recibir una llamada, Twilio invoca un webhook HTTP configurado y ejecuta las instrucciones que el servidor devuelve en formato TwiML (un dialecto XML propio de Twilio).
+    \item \textbf{Twilio Media Streams}: una extensión de Voice que permite acceder al audio de la llamada en tiempo real a través de un WebSocket. El audio se transmite en formato mu-law (PCMU) a 8~kHz en frames de 20~ms.
+    \item \textbf{Twilio Programmable SMS}: permite enviar mensajes de texto desde un número de Twilio. Se utiliza para enviar los códigos de confirmación de reservas.
+\end{itemize}
+
+La integración se realiza mediante la biblioteca oficial \texttt{twilio} de Python para el envío de SMS, y directamente sobre HTTP/WebSocket para los webhooks de voz.
+
+\subsection{Plataforma de IA: Google Cloud (Vertex AI, Speech, TTS)}
+\label{subsec:google_cloud_stack}
+
+Todos los servicios de inteligencia artificial del proyecto se ejecutan en \textbf{Google Cloud Platform}. Esta decisión centraliza la facturación, simplifica la gestión de credenciales (una única cuenta de servicio) y garantiza la interoperabilidad entre los servicios.
+
+Los tres servicios utilizados son:
+
+\begin{itemize}
+    \item \textbf{Vertex AI (Gemini 2.5 Flash)}: modelo de lenguaje generativo utilizado para las respuestas conversacionales del asistente y para la extracción estructurada de datos de reserva. Se accede a través de la API de \texttt{google-genai}, que soporta generación en streaming.
+    
+    \item \textbf{Cloud Speech-to-Text v2}: servicio de reconocimiento automático del habla con soporte de streaming bidireccional. Permite enviar audio de forma continua y recibir transcripciones parciales y finales en tiempo real. Se configura para español de España (\texttt{es-ES}) con puntuación automática.
+    
+    \item \textbf{Cloud Text-to-Speech}: servicio de síntesis de voz neuronal. Se utilizan dos voces según el canal:
+    \begin{itemize}
+        \item \textbf{Chirp3-HD} (\texttt{es-ES-Chirp3-HD-Leda}): voz de alta fidelidad con soporte de síntesis en streaming a 24~kHz, utilizada en la interacción local y la centralita web.
+        \item \textbf{Neural2} (\texttt{es-ES-Neural2-C}): voz que soporta síntesis directa a 8~kHz, utilizada en telefonía para evitar la conversión de frecuencia de muestreo.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Procesamiento de documentos (Marker)}
+\label{subsec:marker_stack}
+
+\textbf{Marker} es una herramienta de código abierto para la extracción de texto de documentos PDF. A diferencia de las herramientas tradicionales basadas en extracción de caracteres, Marker emplea modelos de visión por computador para interpretar la disposición visual del documento, lo que le permite conservar la estructura de tablas, listas y secciones en el formato Markdown resultante.
+
+En el proyecto, Marker se utiliza para convertir la carta del restaurante y su horario desde PDF a Markdown, generando un fichero de caché que se reutiliza en cada ejecución.
+
+\subsection{Exposición pública del servidor local (ngrok)}
+\label{subsec:ngrok_stack}
+
+\textbf{ngrok} es un servicio de túnel inverso que permite exponer un servidor local en una URL pública temporal con soporte HTTPS y WSS. En el proyecto, ngrok se utiliza exclusivamente para que Twilio pueda alcanzar el servidor de telefonía durante las demostraciones, sin necesidad de desplegar el servidor en la nube.
+
+La URL generada por ngrok se configura como webhook de voz en el panel de Twilio. Al tratarse de una URL temporal, esta configuración es adecuada para pruebas y demostraciones pero no para un entorno de producción.
+
+\section{Evolución tecnológica: de LM Studio local a Google Cloud}
+\label{sec:evolucion_tecnologica}
+
+El proyecto ha experimentado una migración tecnológica significativa en su componente de inteligencia artificial. En la primera fase, se utilizó \textbf{LM Studio}, una herramienta de escritorio que permite ejecutar modelos de lenguaje de código abierto en local, exponiendo una API compatible con el formato de OpenAI.
+
+Esta aproximación presentaba ventajas (sin coste por uso, privacidad total de los datos, independencia de internet) pero también limitaciones importantes para los objetivos del proyecto:
+
+\begin{itemize}
+    \item Los modelos locales disponibles no alcanzaban la calidad conversacional necesaria para una interacción telefónica natural en español.
+    \item La ejecución local requería hardware con GPU dedicada, dificultando la portabilidad.
+    \item No existía un ecosistema integrado de voz (STT/TTS) que pudiera combinarse con el modelo local.
+\end{itemize}
+
+La migración a \textbf{Google Cloud} (Gemini 2.5 Flash para el LLM, Cloud Speech v2 para STT y Cloud TTS para síntesis) resolvió estas limitaciones al proporcionar modelos de mayor calidad, un ecosistema integrado de servicios de voz, una facturación unificada, y la posibilidad de escalar sin dependencia de hardware local.
+
+\section{Entorno de desarrollo y despliegue}
+\label{sec:entorno_desarrollo_despliegue}
+
+El desarrollo se realiza en un entorno local con las siguientes características:
+
+\begin{itemize}
+    \item \textbf{Sistema operativo}: Windows.
+    \item \textbf{Runtime}: Python 3.11.
+    \item \textbf{Gestión de dependencias}: \texttt{requirements.txt} con las bibliotecas principales: \texttt{google-genai}, \texttt{google-cloud-speech}, \texttt{google-cloud-texttospeech}, \texttt{marker-pdf}, \texttt{twilio}, \texttt{fastapi}, \texttt{uvicorn} y \texttt{sounddevice}.
+    \item \textbf{Autenticación cloud}: cuenta de servicio de Google Cloud con credenciales locales.
+    \item \textbf{Gestión de secretos}: archivo \texttt{private\_secrets.py} excluido del control de versiones, que contiene las credenciales de Twilio y otros tokens sensibles.
+    \item \textbf{Control de versiones}: Git con repositorio remoto en GitHub.
+\end{itemize}
+
+\figuraPlaceholder{Esquema del entorno de desarrollo y despliegue pendiente de inserción}{fig:despliegue_placeholder}

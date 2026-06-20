@@ -1,0 +1,375 @@
+\documentclass[12pt,a4paper,openany]{book}
+\usepackage{geometry}
+\usepackage{eurosym}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{makeidx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[table]{xcolor}
+\usepackage{pdfpages}
+\usepackage{appendix}
+\usepackage{enumitem}
+\setlist{parsep=0pt,listparindent=\parindent}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{eso-pic}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage{lmodern}
+\usepackage{url}
+\usepackage[]{mcode}
+\usepackage{booktabs}
+
+\usepackage[hidelinks]{hyperref}
+\usepackage{subfig} 
+\usepackage{tabularx}
+\usepackage[normalem]{ulem}
+%\usepackage[justification=centering]{caption}
+\setcounter{secnumdepth}{5}
+\setcounter{tocdepth}{5}
+%\makeatletter
+\usepackage[]{cite}
+%\usepackage[table,xcdraw]{xcolor}
+
+\usepackage{listings}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5, 0.5, 0.5}
+\definecolor{mauve}{rgb}{0.58, 0,0.82}
+\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{purple}\ttfamily,
+  stringstyle=\color{red}\ttfamily,
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{frame=tb,
+language=perl,
+aboveskip=3mm,
+belowskip=-1mm,
+showstringspaces=false,
+columns=flexible,
+basicstyle={\footnotesize\ttfamily},
+numbers=none,
+numberstyle=\tiny\color{gray},
+keywordstyle=\color{blue},
+commentstyle=\color{dkgreen},
+stringstyle=\color{mauve},
+breaklines=true,
+breakatwhitespace=true,
+tabsize=3
+}
+\renewcommand{\lstlistingname}{Código}
+
+\definecolor{rojo}{rgb}{0.8,0,0}
+\definecolor{verde1}{rgb}{0,0.8,0}
+\definecolor{verde2}{rgb}{0,0.7,0}
+\definecolor{verde3}{rgb}{0,0.6,0}
+\definecolor{verde4}{rgb}{0,0.5,0}
+\definecolor{azul1}{rgb}{0,0,0.8}
+\definecolor{azul2}{rgb}{0,0,0.7}
+\definecolor{azul3}{rgb}{0,0,0.6}
+\definecolor{azul4}{rgb}{0,0,0.5}
+%TÍTULO Y AUTOR
+\author{}
+\title{}
+
+%% ESPACIADOS
+\geometry{a4paper,
+left=20mm,right=20mm,
+%bindingoffset=10mm, top=25mm,bottom=25mm} %Esta línea si queremos el binding para imprimir bien
+bindingoffset=0mm, top=25mm,bottom=25mm}
+\setlength{\headheight}{20mm}
+\setlength{\textheight}{237mm}
+\setlength{\parskip}{12pt}
+\titlespacing{\chapter}{0pt}{0pt}{12pt}
+\titlespacing{\section}{0pt}{24pt}{0pt} %doble intro antes de inicio de sección, un intro después
+\renewcommand{\baselinestretch}{1.5} %interlineado
+
+% formato de cabeceras, con package fancyhdr
+\pagestyle{fancy}
+\fancypagestyle{bloque_inicial}{%Encabezado y pie de página del bloque inicial con resumen, notación, indices, etc.
+\fancyhead{}%limpia todos los campos que se pondrían por defecto
+\fancyfoot{}
+\cfoot{\thepage}
+\pagenumbering{roman}
+\renewcommand{\headrulewidth}{0 pt}}
+
+\fancypagestyle{doc_body}{%encabezado y pie de página del bloque del trabajo tal y como están definidos en la plantilla de la EPI
+\pagenumbering{arabic}
+\fancyhead{}
+\lhead{\begin{minipage}{1.8cm}
+		\includegraphics[height=\headheight]{Figuras/EPI.jpg}
+	\end{minipage}
+	\hspace{0.3cm}
+	\begin{minipage}{8cm}
+		\color{gray}
+		\scriptsize {
+			\normalsize
+				\textbf{UNIVERSIDAD DE OVIEDO}}\\
+		\footnotesize {
+			\small
+				 \textbf{Escuela Politécnica de Ingeniería de Gijón}}
+		\color{black}
+	\end{minipage}}
+\rhead{
+\color{gray}
+\footnotesize{\textbf{Hoja \thepage \! \! de \hypersetup{linkcolor=gray}\pageref{LastPage}}}
+\color{black}}
+\fancyfoot{}
+\cfoot{
+\color{gray}
+\textbf{Pablo Acinas Suárez}
+\color{black}}
+\renewcommand{\headrulewidth}{0 pt} %sin línea horizontal en el encabezado
+\renewcommand{\footrulewidth}{0.4pt}
+}
+
+%%Modifica el color de los enlaces
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=blue, urlcolor=blue}
+
+
+
+\addto\captionsspanish{%
+\renewcommand{\chaptername}{Capítulo}
+\renewcommand{\bibname}{Bibliografía}
+\renewcommand{\appendixname}{Anexo}
+\renewcommand{\contentsname}{Índice}
+\renewcommand{\listfigurename}{Índice de Figuras}
+\renewcommand{\listtablename}{Índice de Tablas}
+\renewcommand{\familydefault}{\sfdefault}
+\fontfamily{\sfdefault}\selectfont
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}}
+
+
+%%formato del capítulo, apartados y subapartados
+\titleformat{\chapter}
+{\fontsize{27}{27}\linespread{1}\selectfont\bf}{\thechapter.}{1em}{}
+
+\titleformat{\section}
+{\fontsize{14}{14}\linespread{1}\selectfont\bf}{\thesection.-}{1em}{}
+
+\titleformat{\subsection}
+{\fontsize{12}{12}\linespread{1}\selectfont\bf}{\thesubsection.-}{1em}{}
+
+\titleformat{\subsubsection}
+{\fontsize{12}{12}\linespread{1}\selectfont\bf}{\thesubsubsection.-}{1em}{}
+
+%formato del rótulo de las figuras y las Tablas
+\DeclareCaptionLabelSeparator{compuesto}{.- }  %define el nuevo tipo de separador
+\captionsetup{labelsep = compuesto} %incluye el separador en el seup de los rótulos de figuras y Tablas
+
+%marca de agua, configuración de su tamaño y posición
+\newcommand\BackgroundPic{
+\put(70,-40){
+\parbox[b][\paperheight]{\paperwidth}{%
+\includegraphics[width=5cm,keepaspectratio]{Figuras/marca_agua.png}%
+}}}
+
+%cuando te parta una palabra mal entre dos líneas, le indicas aquí cómo quieres que la divida
+\hyphenation{e-jem-plo}
+
+%control de líneas viudas y huerfanas
+\clubpenalty=10000
+\widowpenalty=10000
+
+\pretolerance=2000
+\tolerance=3000
+
+\emergencystretch = \maxdimen
+\hyphenpenalty = 10000
+\hbadness = 10000
+
+\setlist[itemize]{noitemsep, topsep=0pt}
+
+\raggedbottom
+
+\newcommand{\textoBase}{%
+Este texto se incluye como marcador de posición para ajustar la estructura del documento, revisar la continuidad visual y completar la maquetación inicial. Su contenido es genérico y no representa decisiones, resultados ni afirmaciones definitivas del proyecto.
+}
+
+\newcommand{\textoBaseAlt}{%
+El párrafo mantiene una longitud media para comprobar espaciado, saltos de página y consistencia tipográfica. Más adelante podrá sustituirse por contenido específico, referencias bibliográficas y desarrollo técnico real.
+}
+
+\newcommand{\figuraPlaceholder}[2]{%
+\begin{figure}[H]
+\centering
+\fbox{\parbox[c][5cm][c]{0.78\textwidth}{\centering Marcador de posición\\#1}}
+\caption{#1}
+\label{#2}
+\end{figure}
+}
+
+
+\begin{document}
+
+
+
+\pagestyle{bloque_inicial} %utiliza cabeceras definidas en bloque_inicial
+\pagenumbering{roman}
+%Este bloque va comentado para que no te genere tantas hojas al principio cuando estés escribiendo el documento
+%incluye la portada, y los bloques de agradecimientos, resumen, acrónimos y notación (yo incluiría resumen y notación/acrónimos mínimo)
+\setlength{\textfloatsep}{1cm}
+
+
+%Titulo
+\thispagestyle{empty}
+\include{titlepage}
+%\includepdf{portadaInterior.pdf}
+%\newpage{} %hoja en blanco
+%\thispagestyle{empty} %para que no incluya numero de página
+%
+%\chapter*{Agradecimientos}
+%
+%\thispagestyle{fancy}
+%
+%
+%\newpage{}
+%\thispagestyle{empty}
+%\chapter*{Resumen}
+%\thispagestyle{fancy}
+%
+%
+%%\cleardoublepage
+%%\newpage{}
+%\thispagestyle{empty}
+%
+%\chapter*{Acrónimos}
+%\begin{itemize}
+%
+%\end{itemize}
+%\thispagestyle{fancy}
+%\newpage{}
+%\thispagestyle{empty}
+%
+%\chapter*{Notación}
+%\thispagestyle{fancy}
+%\noindent
+%\begin{tabular}{ll}
+%
+%\end{tabular}
+%\newpage{}
+%\thispagestyle{empty}
+
+\clearpage
+\renewcommand{\baselinestretch}{0.75}\normalsize
+%a continuación el índice (general, de figuras y de Tablas)
+\tableofcontents
+%\cleardoublepage
+\listoffigures
+%\cleardoublepage
+\listoftables
+%\cleardoublepage
+\renewcommand{\baselinestretch}{1.5}\normalsize
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 						CUERPO DEL TFG
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage{} % los capítulos empiezan en página nueva
+\pagestyle{doc_body} % para usar los encabezados y pies de página definidos para el cuerpo del documento
+\pagenumbering{arabic} 
+\AddToShipoutPicture{\BackgroundPic}% añade la marca de agua
+
+%CAPÍTULO DE INTRODUCCIÓN
+\input{Texto/Introduccion/Intro.tex}
+
+%CAPÍTULO DE ESTADO DEL ARTE
+\input{Texto/EstadoArte/EstadoArte.tex}
+
+%CAPÍTULO DE ANÁLISIS DEL SISTEMA
+\input{Texto/Analisis/Analisis.tex}
+
+%CAPÍTULO DE DISEÑO DE LA ARQUITECTURA
+\input{Texto/Arquitectura/Arquitectura.tex}
+
+%CAPÍTULO DE TECNOLOGÍAS Y HERRAMIENTAS
+\input{Texto/Infraestructura/Infraestructura.tex}
+
+%CAPÍTULO DE IMPLEMENTACIÓN
+\input{Texto/Implementacion/Implementacion.tex}
+
+%CAPÍTULO DE PRUEBAS Y VALIDACIÓN
+\input{Texto/Pruebas/Pruebas.tex}
+
+%CAPÍTULO DE GESTIÓN DEL PROYECTO
+\input{Texto/Planificacion/Plani.tex}
+
+%CAPÍTULO DE CONCLUSIONES
+\input{Texto/Conclusiones/Conclusiones.tex}
+
+%\cleardoublepage
+%
+%\addcontentsline{toc}{section}{Glosario} %para añadir el código en un anexo
+%\begin{Large}
+%\textbf{Glosario}
+%\end{Large}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%capítulo de bibliografía
+\cleardoublepage
+\chapter{\textbf{Bibliografía}}
+\label{ch:Bibliografia}
+\thispagestyle{fancy}
+
+\begin{thebibliography}{99}
+\bibitem{CE2024DigitalDecade}
+European Commission. \textit{Digital Decade 2024: Country reports}. Directorate-General for Communications Networks, Content and Technology, 2024. Disponible en: \url{https://digital-strategy.ec.europa.eu/en/library/digital-decade-2024-country-reports}. Último acceso: 29 de mayo de 2026.
+
+\bibitem{INE2025TIC}
+Instituto Nacional de Estadística. \textit{Encuesta sobre el uso de TIC y del comercio electrónico en las empresas. Año 2024 - Primer trimestre 2025. Datos definitivos}. INE, 2025. Disponible en: \url{https://ine.es/dyngs/Prensa/ETICCE20241T2025.htm}. Último acceso: 29 de mayo de 2026.
+
+\bibitem{McKinsey2025StateAI}
+McKinsey \& Company. \textit{The State of AI}. QuantumBlack, AI by McKinsey, 2025. Disponible en: \url{https://www.mckinsey.com/capabilities/quantumblack/our-insights/the-state-of-ai}. Último acceso: 29 de mayo de 2026.
+\end{thebibliography}
+
+
+\cleardoublepage
+
+
+%ANEXOS
+%\appendix
+%\input{Texto/AnexoA/Carnavalescos.tex}
+
+
+
+
+
+
+
+
+
+
+
+
+%\lstinputlisting{codigo/main_farfield.m}
+%\lstinputlisting{codigo/gslc.m}
+%\newpage
+%\lstinputlisting{codigo/lms.m}
+
+
+
+
+%\thispagestyle{empty}
+\end{document}
